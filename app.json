@@ -49,6 +49,13 @@
       ],
       "expo-secure-store",
       [
+        "expo-notifications",
+        {
+          "color": "#6527B8",
+          "defaultChannel": "jobs"
+        }
+      ],
+      [
         "expo-image-picker",
         {
           "photosPermission": "PurplePartner uses your photos to attach job completion proof and KYC documents.",

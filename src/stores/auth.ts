@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { api } from '@/lib/api';
 import { signOutFirebase } from '@/lib/firebase-phone-auth';
+import { unregisterJobAlerts } from '@/lib/push';
 import { sessionStorage, type StoredSession } from '@/lib/session';
 import type { AuthResponse, User } from '@/types/api';
 
@@ -15,5 +16,5 @@ export const useAuth = create<AuthState>((set) => ({
     if (response.user.role !== 'TECHNICIAN') { await Promise.allSettled([api.auth.logout(response.tokens.refresh)]); await Promise.allSettled([sessionStorage.clear(), signOutFirebase()]); throw new NotPartnerError(); }
     set({ ready: true, user: response.user });
   },
-  logout: async () => { const session = await sessionStorage.get(); try { if (session?.tokens.refresh) await api.auth.logout(session.tokens.refresh); } finally { await Promise.allSettled([sessionStorage.clear(), signOutFirebase()]); set({ user: null }); } },
+  logout: async () => { await unregisterJobAlerts(); const session = await sessionStorage.get(); try { if (session?.tokens.refresh) await api.auth.logout(session.tokens.refresh); } finally { await Promise.allSettled([sessionStorage.clear(), signOutFirebase()]); set({ user: null }); } },
 }));
