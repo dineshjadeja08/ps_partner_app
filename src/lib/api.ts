@@ -1,6 +1,7 @@
+import { Platform } from 'react-native';
 import { mockPartnerApi } from '@/lib/mock-data';
 import { sessionStorage } from '@/lib/session';
-import type { ApiErrorBody, AuthResponse, DashboardSummary, Earnings, Job, Leave, LeaveInput, Paginated, Performance, Restriction, Review, Settlement, TechnicianProfile, User, Wallet } from '@/types/api';
+import type { ApiErrorBody, AuthResponse, DashboardSummary, Earnings, Job, JobPhoto, JobPhotoKind, Leave, LeaveInput, Paginated, Performance, Restriction, Review, TechnicianProfile, User, Wallet } from '@/types/api';
 
 const API_URL = (process.env.EXPO_PUBLIC_API_URL ?? 'http://10.0.2.2:8000').replace(/\/$/, '');
 /** True while partner endpoints that the backend does not ship yet are served from sample data. */
@@ -33,6 +34,12 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   if (!response.ok) { let body: ApiErrorBody = {}; try { body = await response.json() as ApiErrorBody; } catch {} const fallback = response.status >= 500 ? 'Purple Squad is temporarily unavailable. Please try again.' : 'Please check the details and try again.'; throw new ApiError(response.status, errorMessage(body, fallback), body.error?.code, body.error?.details ?? body); }
   if (response.status === 204) return undefined as T; return response.json() as Promise<T>;
 }
+export type PickedFile = { uri: string; name: string; mimeType: string };
+/** Native FormData takes { uri, name, type }; the web needs the actual Blob. */
+async function appendFile(body: FormData, field: string, file: PickedFile) {
+  if (Platform.OS === 'web') { body.append(field, await (await fetch(file.uri)).blob(), file.name); return; }
+  body.append(field, { uri: file.uri, name: file.name, type: file.mimeType } as unknown as Blob);
+}
 /** Proposed endpoint: sample data while USING_MOCKS, the real path once the backend ships it. */
 const pending = <T,>(mock: () => Promise<T>, real: () => Promise<T>) => (USING_MOCKS ? mock() : real());
 
@@ -46,14 +53,20 @@ export const api = {
   jobs: {
     list: () => apiRequest<Paginated<Job>>('/api/v1/technician/jobs/', { auth: true, query: { page_size: 100 } }),
     get: (id: string) => apiRequest<Job>(`/api/v1/technician/jobs/${id}/`, { auth: true }),
+    accept: (id: string) => apiRequest<Job>(`/api/v1/technician/jobs/${id}/accept/`, { method: 'POST', auth: true, body: '{}' }),
     enRoute: (id: string) => apiRequest<Job>(`/api/v1/technician/jobs/${id}/en-route/`, { method: 'POST', auth: true, body: '{}' }),
-    start: (id: string) => apiRequest<Job>(`/api/v1/technician/jobs/${id}/start/`, { method: 'POST', auth: true, body: '{}' }),
+    arrived: (id: string) => apiRequest<Job>(`/api/v1/technician/jobs/${id}/arrived/`, { method: 'POST', auth: true, body: '{}' }),
+    start: (id: string, otp: string) => apiRequest<Job>(`/api/v1/technician/jobs/${id}/start/`, { method: 'POST', auth: true, body: JSON.stringify({ otp }) }),
     complete: (id: string) => apiRequest<Job>(`/api/v1/technician/jobs/${id}/complete/`, { method: 'POST', auth: true, body: '{}' }),
+    photos: (id: string) => apiRequest<JobPhoto[]>(`/api/v1/technician/jobs/${id}/photos/`, { auth: true }),
+    uploadPhoto: async (id: string, kind: JobPhotoKind, file: PickedFile) => { const body = new FormData(); body.append('kind', kind); await appendFile(body, 'file', file); return apiRequest<JobPhoto>(`/api/v1/technician/jobs/${id}/photos/`, { method: 'POST', auth: true, body }); },
+    deletePhoto: (id: string, photoId: string) => apiRequest<void>(`/api/v1/technician/jobs/${id}/photos/${photoId}/`, { method: 'DELETE', auth: true }),
     collectBalance: (id: string, amount: string, method: 'CASH' | 'UPI') => apiRequest<Job>(`/api/v1/technician/jobs/${id}/collect-balance/`, { method: 'POST', auth: true, body: JSON.stringify({ amount, method }) }),
   },
   me: {
     profile: () => apiRequest<TechnicianProfile>('/api/v1/technician/profile/', { auth: true }),
     performance: () => apiRequest<Performance>('/api/v1/technician/performance/', { auth: true }),
+    earnings: () => apiRequest<Earnings>('/api/v1/technician/earnings/', { auth: true }),
     reviews: async () => (await apiRequest<Paginated<Review>>('/api/v1/technician/reviews/', { auth: true, query: { page_size: 100 } })).results,
     leaves: async () => (await apiRequest<Paginated<Leave>>('/api/v1/technician/leaves/', { auth: true, query: { page_size: 100 } })).results,
     applyLeave: (input: LeaveInput) => apiRequest<Leave>('/api/v1/technician/leaves/', { method: 'POST', auth: true, body: JSON.stringify(input) }),
@@ -63,8 +76,6 @@ export const api = {
     restrictions: () => pending(mockPartnerApi.restrictions, () => apiRequest<Restriction[]>('/api/v1/technician/restrictions/', { auth: true })),
     dashboard: () => pending(mockPartnerApi.dashboard, () => apiRequest<DashboardSummary>('/api/v1/technician/dashboard/', { auth: true })),
     wallet: () => pending(mockPartnerApi.wallet, () => apiRequest<Wallet>('/api/v1/technician/wallet/', { auth: true })),
-    earnings: () => pending(mockPartnerApi.earnings, () => apiRequest<Earnings>('/api/v1/technician/earnings/', { auth: true })),
-    settlement: (id: string) => pending(() => mockPartnerApi.settlement(id), () => apiRequest<Settlement>(`/api/v1/technician/settlements/${id}/`, { auth: true })),
   },
 };
 export const money = (value: string | number) => `₹${Number(value).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;

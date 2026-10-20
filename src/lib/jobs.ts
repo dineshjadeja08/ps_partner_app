@@ -5,11 +5,18 @@ import type { BookingStatus, Job } from '@/types/api';
 export const jobsQueryKey = ['jobs'] as const;
 export const jobsQuery = { queryKey: jobsQueryKey, queryFn: api.jobs.list };
 
-const labels: Partial<Record<BookingStatus, string>> = {
-  CONFIRMED: 'New', TECHNICIAN_ASSIGNED: 'Assigned', TECHNICIAN_EN_ROUTE: 'On the way', IN_PROGRESS: 'In progress',
-  COMPLETED: 'Completed', CLOSED: 'Closed', CANCELLED: 'Cancelled', REFUND_PENDING: 'Cancelled', REFUNDED: 'Cancelled',
-};
-export const jobStatusLabel = (status: string) => labels[status as BookingStatus] ?? status.replaceAll('_', ' ').toLowerCase();
+/** Status label, including the Accepted and Arrived steps the backend records as timestamps. */
+export function jobStatusLabel(job: Job) {
+  switch (job.booking_status) {
+    case 'CONFIRMED': return 'New';
+    case 'TECHNICIAN_ASSIGNED': return job.accepted_at ? 'Accepted' : 'New';
+    case 'TECHNICIAN_EN_ROUTE': return job.arrived_at ? 'Arrived' : 'On the way';
+    case 'IN_PROGRESS': return 'Started';
+    case 'COMPLETED': case 'CLOSED': return 'Completed';
+    case 'CANCELLED': case 'REFUND_PENDING': case 'REFUNDED': return 'Cancelled';
+    default: return job.booking_status.replaceAll('_', ' ').toLowerCase();
+  }
+}
 export type Tone = 'info' | 'progress' | 'success' | 'danger';
 export function jobTone(status: BookingStatus): Tone {
   if (status === 'COMPLETED' || status === 'CLOSED') return 'success';
@@ -18,31 +25,43 @@ export function jobTone(status: BookingStatus): Tone {
   return 'info';
 }
 
-const closed: BookingStatus[] = ['COMPLETED', 'CLOSED', 'CANCELLED', 'REFUND_PENDING', 'REFUNDED'];
-export const isOpen = (job: Job) => !closed.includes(job.booking_status);
+const completed: BookingStatus[] = ['COMPLETED', 'CLOSED'];
+const cancelled: BookingStatus[] = ['CANCELLED', 'REFUND_PENDING', 'REFUNDED', 'PAYMENT_FAILED'];
+export const isOpen = (job: Job) => !completed.includes(job.booking_status) && !cancelled.includes(job.booking_status);
 export const isOverdue = (job: Job) => isOpen(job) && job.service_date < localDay();
 
-export type JobBucket = 'today' | 'tomorrow' | 'upcoming' | 'overdue' | 'closed';
+export type JobBucket = 'today' | 'upcoming' | 'overdue' | 'completed' | 'cancelled';
 export function bucketOf(job: Job): JobBucket {
-  if (!isOpen(job)) return 'closed';
+  if (completed.includes(job.booking_status)) return 'completed';
+  if (cancelled.includes(job.booking_status)) return 'cancelled';
   if (job.service_date < localDay()) return 'overdue';
   if (job.service_date === localDay()) return 'today';
-  if (job.service_date === localDay(1)) return 'tomorrow';
   return 'upcoming';
 }
 export function countBuckets(jobs: Job[]) {
-  const counts: Record<JobBucket, number> = { today: 0, tomorrow: 0, upcoming: 0, overdue: 0, closed: 0 };
+  const counts: Record<JobBucket, number> = { today: 0, upcoming: 0, overdue: 0, completed: 0, cancelled: 0 };
   jobs.forEach((job) => { counts[bucketOf(job)] += 1; });
   return counts;
 }
 
-/** The next step a partner can take on a job, following the backend's state machine. */
-export function nextAction(job: Job) {
-  if (job.booking_status === 'CONFIRMED' || job.booking_status === 'TECHNICIAN_ASSIGNED') return { label: 'Start travelling', hint: 'Tell the customer you are on the way.', run: api.jobs.enRoute };
-  if (job.booking_status === 'TECHNICIAN_EN_ROUTE') return { label: 'Start job', hint: 'Inspect the site and agree the work with the customer first.', run: api.jobs.start };
-  if (job.booking_status === 'IN_PROGRESS') return { label: 'Complete job', hint: 'Confirm the work is finished and the customer is satisfied.', run: api.jobs.complete };
-  return null;
+export type JobStep = 'accept' | 'travel' | 'arrive' | 'start' | 'collect' | 'complete';
+/** The partner's next step: Accept → On the way → Arrived → Start (customer OTP) → collect balance → Complete. */
+export function nextStep(job: Job): JobStep | null {
+  switch (job.booking_status) {
+    case 'TECHNICIAN_ASSIGNED': return job.accepted_at ? 'travel' : 'accept';
+    case 'TECHNICIAN_EN_ROUTE': return job.arrived_at ? 'start' : 'arrive';
+    case 'IN_PROGRESS': return balanceRemaining(job) > 0 ? 'collect' : 'complete';
+    default: return null;
+  }
 }
+export const stepCopy: Record<JobStep, { label: string; hint: string }> = {
+  accept: { label: 'Accept job', hint: 'Accept to confirm you will do this job at the scheduled time.' },
+  travel: { label: 'Start travelling', hint: 'Tap when you leave, so the customer knows you are on the way.' },
+  arrive: { label: 'I have arrived', hint: 'Tap when you reach the customer’s address.' },
+  start: { label: 'Start job', hint: 'Inspect the site, agree the work, then ask the customer for their 4-digit service OTP.' },
+  collect: { label: 'Collect payment', hint: 'Collect the balance from the customer and record it here.' },
+  complete: { label: 'Complete job', hint: 'Confirm the work is finished and the customer is satisfied.' },
+};
 
 /** Balance still to collect on site, in rupees. */
 export const balanceRemaining = (job: Job) => Math.max(0, Number(job.balance_due) - Number(job.balance_collected));

@@ -12,7 +12,7 @@ import { bucketOf, isOpen, jobsQuery, type JobBucket } from '@/lib/jobs';
 import { colors, radius, spacing, typography } from '@/theme/tokens';
 
 type Filter = 'all' | JobBucket;
-const filters: { value: Filter; label: string }[] = [{ value: 'all', label: 'All' }, { value: 'today', label: 'Today' }, { value: 'tomorrow', label: 'Tomorrow' }, { value: 'upcoming', label: 'Upcoming' }, { value: 'overdue', label: 'Overdue' }, { value: 'closed', label: 'Closed' }];
+const filters: { value: Filter; label: string }[] = [{ value: 'all', label: 'All' }, { value: 'today', label: 'Today' }, { value: 'upcoming', label: 'Upcoming' }, { value: 'overdue', label: 'Overdue' }, { value: 'completed', label: 'Completed' }, { value: 'cancelled', label: 'Cancelled' }];
 
 export default function JobsScreen() {
   const params = useLocalSearchParams<{ filter?: Filter }>();

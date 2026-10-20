@@ -11,7 +11,9 @@
       "bundleIdentifier": "in.purplesquad.partner",
       "supportsTablet": false,
       "infoPlist": {
-        "UIBackgroundModes": ["location"]
+        "UIBackgroundModes": [
+          "location"
+        ]
       }
     },
     "android": {
@@ -46,6 +48,14 @@
         }
       ],
       "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "PurplePartner uses your photos to attach job completion proof and KYC documents.",
+          "cameraPermission": "PurplePartner uses the camera to photograph completed work, receipts and KYC documents.",
+          "microphonePermission": false
+        }
+      ],
       [
         "expo-location",
         {

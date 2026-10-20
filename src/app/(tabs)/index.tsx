@@ -10,7 +10,7 @@ import { countBuckets, jobsQuery, type JobBucket } from '@/lib/jobs';
 import { usePartnerStatus, useProfile, useRestrictions } from '@/lib/queries';
 import { colors, radius, spacing, typography } from '@/theme/tokens';
 
-const buckets: { key: JobBucket; label: string }[] = [{ key: 'today', label: 'Today' }, { key: 'tomorrow', label: 'Tomorrow' }, { key: 'upcoming', label: 'Upcoming' }, { key: 'overdue', label: 'Overdue' }, { key: 'closed', label: 'Closed' }];
+const buckets: { key: JobBucket; label: string }[] = [{ key: 'today', label: 'Today' }, { key: 'upcoming', label: 'Upcoming' }, { key: 'overdue', label: 'Overdue' }, { key: 'completed', label: 'Completed' }, { key: 'cancelled', label: 'Cancelled' }];
 
 export default function DashboardScreen() {
   const profile = useProfile(); const status = usePartnerStatus(); const restrictions = useRestrictions(); const jobs = useQuery(jobsQuery);

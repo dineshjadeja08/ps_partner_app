@@ -16,7 +16,11 @@ export type Job = {
   total_amount: string; advance_paid: string; balance_due: string; balance_collected: string;
   payment_status: PaymentStatus; booking_status: BookingStatus; customer_notes?: string;
   completed_at: string | null; cancelled_at: string | null; created_at: string;
+  accepted_at: string | null; arrived_at: string | null; start_otp_verified: boolean;
 };
+
+export type JobPhotoKind = 'BEFORE' | 'AFTER' | 'RECEIPT';
+export type JobPhoto = { id: UUID; kind: JobPhotoKind; url: string; created_at: string };
 
 // ── Technician self-service (/api/v1/technician/profile|reviews|leaves|performance) ──
 export type TechnicianProfile = {
@@ -36,6 +40,8 @@ export type Performance = {
   needs_attention: boolean; trend: MonthPoint[];
 };
 export type Review = { id: UUID; booking_number: string; customer_name: string; service_name: string; rating: number; comment: string; created_at: string };
+export type EarningJob = { id: UUID; booking_number: string; service_name: string; service_date: string; completed_at: string | null; total_amount: string; paid_online: string; collected_by_you: string; collection_method: string };
+export type Earnings = { period: string; job_count: number; job_value_total: string; collected_by_you_total: string; paid_online_total: string; jobs: EarningJob[] };
 export type LeaveStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 export type Leave = { id: UUID; start_at: string; end_at: string; reason: string; status: LeaveStatus; review_note: string };
 export type LeaveInput = { start_at: string; end_at: string; reason: string };
@@ -47,9 +53,3 @@ export type WalletTxnKind = 'CREDIT' | 'DEBIT';
 export type WalletTxn = { id: UUID; title: string; kind: WalletTxnKind; amount: string; work_order?: string; created_at: string };
 export type Penalty = { id: UUID; reason: string; amount: string; work_order?: string; created_at: string };
 export type Wallet = { running_credits: string; transactions: WalletTxn[]; incentives: WalletTxn[]; penalties: Penalty[] };
-export type Settlement = {
-  id: UUID; settlement_number: string; service_name: string; work_order: string; invoice_number: string; amount: string;
-  status: 'PENDING' | 'COMPLETED' | 'REVERSED'; collected_by: 'CASH' | 'ONLINE'; created_at: string;
-  items: { name: string; quantity: number; unit_price: string; total: string }[]; subtotal: string; discount: string; total: string;
-};
-export type Earnings = { total: string; settlements: Settlement[] };

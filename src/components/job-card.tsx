@@ -9,7 +9,7 @@ import type { Job } from '@/types/api';
 export function JobCard({ job }: { job: Job }) {
   const overdue = isOverdue(job);
   return <Card onPress={() => router.push({ pathname: '/job/[id]', params: { id: job.id } })}>
-    <View style={styles.top}><Text numberOfLines={1} style={styles.name}>{job.customer_name || 'Customer'}</Text><StatusPill label={overdue ? 'Overdue' : jobStatusLabel(job.booking_status)} tone={overdue ? 'danger' : jobTone(job.booking_status)} /></View>
+    <View style={styles.top}><Text numberOfLines={1} style={styles.name}>{job.customer_name || 'Customer'}</Text><StatusPill label={overdue ? 'Overdue' : jobStatusLabel(job)} tone={overdue ? 'danger' : jobTone(job.booking_status)} /></View>
     <Text style={styles.meta}>{job.booking_number} | {formatDate(job.service_date)}, {formatSlot(job.time_slot.start_time, job.time_slot.end_time)}</Text>
     <Text style={styles.service}>{job.service.name}</Text>
   </Card>;

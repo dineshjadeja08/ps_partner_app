@@ -15,7 +15,7 @@ export default function ScheduleScreen() {
   const jobs = useQuery(jobsQuery);
   const [filter, setFilter] = useState<Filter>('all');
   // Today's work: jobs scheduled today plus anything overdue that still needs finishing.
-  const today = (jobs.data?.results ?? []).filter((job) => { const bucket = bucketOf(job); return bucket === 'today' || bucket === 'overdue' || (bucket === 'closed' && job.service_date === localDay()); })
+  const today = (jobs.data?.results ?? []).filter((job) => { const bucket = bucketOf(job); return bucket === 'today' || bucket === 'overdue' || ((bucket === 'completed' || bucket === 'cancelled') && job.service_date === localDay()); })
     .filter((job) => filter === 'all' || (filter === 'pending' ? isOpen(job) : !isOpen(job)))
     .sort((a, b) => a.time_slot.start_time.localeCompare(b.time_slot.start_time));
   return <Screen refreshing={jobs.isRefetching} onRefresh={() => void jobs.refetch()}>

@@ -1,4 +1,4 @@
-import type { DashboardSummary, Earnings, Restriction, Wallet } from '@/types/api';
+import type { DashboardSummary, Restriction, Wallet } from '@/types/api';
 
 // Sample data for partner endpoints the backend does not ship yet. Shapes follow
 // docs/PARTNER_API_CONTRACT.md so screens need no change when the real endpoints land.
@@ -24,22 +24,8 @@ const wallet: Wallet = {
   incentives: [],
   penalties: [{ id: 'pn1', reason: 'Partner did not show up for the visit', amount: '99', work_order: 'PS-1452384', created_at: daysAgo(11, 20) }],
 };
-const settlementItems = (name: string, price: string) => [{ name, quantity: 1, unit_price: price, total: price }];
-const earnings: Earnings = {
-  total: '36699',
-  settlements: [
-    ['499', 'AC Gas Refill', 'PS-1453298', 0], ['4000', 'Washing Machine Motor Replacement', 'PS-1452318', 2], ['3500', 'Refrigerator Compressor Repair', 'PS-1452281', 2],
-    ['4600', 'AC Installation (Split)', 'PS-1452259', 2], ['3700', 'AC Uninstallation + Installation', 'PS-1452317', 2], ['17000', 'Annual Maintenance – 4 ACs', 'PS-1451090', 4],
-  ].map(([amount, name, wo, ago], index) => ({
-    id: `st-${index}`, settlement_number: String(335354 + index), service_name: String(name), work_order: String(wo), invoice_number: String(433578 - index),
-    amount: String(amount), status: 'COMPLETED' as const, collected_by: index % 2 ? 'ONLINE' as const : 'CASH' as const, created_at: daysAgo(10 + Number(ago), 12),
-    items: settlementItems(String(name), String(amount)), subtotal: String(amount), discount: '0', total: String(amount),
-  })),
-};
 export const mockPartnerApi = {
   restrictions: () => delay(restrictions),
   dashboard: () => delay<DashboardSummary>({ opportunities: { mine: 13, open: null } }),
   wallet: () => delay(wallet),
-  earnings: () => delay(earnings),
-  settlement: (id: string) => { const found = earnings.settlements.find((item) => item.id === id); return found ? delay(found) : Promise.reject(new Error('Settlement not found.')); },
 };
