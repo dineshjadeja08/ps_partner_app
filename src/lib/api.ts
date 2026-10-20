@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
 import { mockPartnerApi } from '@/lib/mock-data';
 import { sessionStorage } from '@/lib/session';
-import type { ApiErrorBody, AuthResponse, DashboardSummary, Earnings, Job, JobPhoto, JobPhotoKind, Leave, LeaveInput, Paginated, Performance, Restriction, Review, TechnicianProfile, User, Wallet } from '@/types/api';
+import type { ApiErrorBody, AuthResponse, DashboardSummary, DocumentType, Earnings, Job, JobPhoto, JobPhotoKind, KycDocument, Leave, LeaveInput, Paginated, Performance, ProfileUpdate, Restriction, Review, Skill, TechnicianProfile, User, Wallet } from '@/types/api';
 
 const API_URL = (process.env.EXPO_PUBLIC_API_URL ?? 'http://10.0.2.2:8000').replace(/\/$/, '');
 /** True while partner endpoints that the backend does not ship yet are served from sample data. */
@@ -12,6 +12,8 @@ let refreshPromise: Promise<string | null> | null = null;
 function errorMessage(body: ApiErrorBody, fallback: string) {
   const details = body.error?.details as unknown;
   const first = (value: unknown): string | undefined => (typeof value === 'string' ? value : Array.isArray(value) ? first(value[0]) : value && typeof value === 'object' ? first(Object.values(value)[0]) : undefined);
+  const missing = (details as { missing?: unknown } | undefined)?.missing;
+  if (Array.isArray(missing) && missing.length) return `Still needed: ${missing.join(', ')}.`;
   return first(details) ?? body.error?.message ?? body.detail ?? fallback;
 }
 function buildUrl(path: string, query?: Record<string, string | number | boolean | undefined>) { const value = new URL(`${API_URL}${path}`); Object.entries(query ?? {}).forEach(([key, item]) => item !== undefined && value.searchParams.set(key, String(item))); return value.toString(); }
@@ -45,7 +47,8 @@ const pending = <T,>(mock: () => Promise<T>, real: () => Promise<T>) => (USING_M
 
 export const api = {
   auth: {
-    firebase: (id_token: string) => apiRequest<AuthResponse>('/api/v1/auth/firebase/', { method: 'POST', body: JSON.stringify({ id_token }) }),
+    // app: 'partner' signs new numbers up as pending partners instead of customers.
+    firebase: (id_token: string) => apiRequest<AuthResponse>('/api/v1/auth/firebase/', { method: 'POST', body: JSON.stringify({ id_token, app: 'partner' }) }),
     me: () => apiRequest<User>('/api/v1/auth/me/', { auth: true }),
     logout: (refresh: string) => apiRequest<void>('/api/v1/auth/logout/', { method: 'POST', auth: true, body: JSON.stringify({ refresh }) }),
   },
@@ -65,6 +68,12 @@ export const api = {
   },
   me: {
     profile: () => apiRequest<TechnicianProfile>('/api/v1/technician/profile/', { auth: true }),
+    updateProfile: (body: ProfileUpdate) => apiRequest<TechnicianProfile>('/api/v1/technician/profile/', { method: 'PATCH', auth: true, body: JSON.stringify(body) }),
+    skills: () => apiRequest<Skill[]>('/api/v1/technician/skills/', { auth: true }),
+    documents: () => apiRequest<KycDocument[]>('/api/v1/technician/documents/', { auth: true }),
+    uploadDocument: async (docType: DocumentType, file: PickedFile) => { const body = new FormData(); body.append('doc_type', docType); await appendFile(body, 'file', file); return apiRequest<KycDocument>('/api/v1/technician/documents/', { method: 'POST', auth: true, body }); },
+    deleteDocument: (id: string) => apiRequest<void>(`/api/v1/technician/documents/${id}/`, { method: 'DELETE', auth: true }),
+    submitKyc: () => apiRequest<TechnicianProfile>('/api/v1/technician/kyc/submit/', { method: 'POST', auth: true }),
     performance: () => apiRequest<Performance>('/api/v1/technician/performance/', { auth: true }),
     earnings: () => apiRequest<Earnings>('/api/v1/technician/earnings/', { auth: true }),
     reviews: async () => (await apiRequest<Paginated<Review>>('/api/v1/technician/reviews/', { auth: true, query: { page_size: 100 } })).results,

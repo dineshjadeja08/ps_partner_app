@@ -21,7 +21,7 @@ export default function DashboardScreen() {
   return <>
     <TabHeader title={profile.data ? `Hi, ${profile.data.display_name.split(' ')[0]}` : 'PurplePartner'} status={status} />
     <Screen refreshing={jobs.isRefetching} onRefresh={refresh}>
-      <SampleDataNote label="Restrictions and opportunities are sample data. Jobs and profile are live." />
+      <SampleDataNote label="Opportunities are sample data. Jobs and profile are live." />
       {restriction ? <Pressable accessibilityRole="button" onPress={() => router.push('/restrictions')} style={styles.restricted}>
         <Text style={styles.restrictedTitle}>Profile is restricted</Text><Text style={styles.restrictedBody}>{restriction.level} – {restriction.reason}{restriction.work_order ? ` WO #${restriction.work_order}` : ''}</Text>
         <View style={styles.viewRow}><Text style={styles.viewText}>View details</Text><Ionicons name="arrow-forward" size={16} color={colors.white} /></View>

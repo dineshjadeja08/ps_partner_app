@@ -4,19 +4,27 @@ Expo/React Native app for Purple Squad service partners (technicians and partner
 
 ## Implemented journey
 
-Phone OTP (Firebase) → technician-only role check → location permissions → Dashboard → Jobs → Job detail → Start travelling → Start job → Record cash/UPI collected → Complete job.
+1. **Sign in or join:** phone OTP (Firebase). A new number signs up as a pending partner; numbers registered as customers are refused.
+2. **KYC:** name, city, pincode, experience, languages and services, plus Aadhaar (front and back), PAN and a photo, with optional certificates. The partner submits for review and the screen shows *under review* until an admin approves. If rejected, the admin's note is shown and the partner can fix and resubmit.
+3. **Location permissions** (first time only), then the dashboard.
+4. **Job alerts:** a push notification when an admin assigns a job. Tapping it opens the job.
+5. **Job flow:** Accept → Start travelling → I have arrived → enter the customer's 4-digit **service OTP** → Start job → before/after photos and receipt → record cash or UPI collected → Complete job.
+6. **Jobs** list with Today, Upcoming, Overdue, Completed and Cancelled tabs. **Earnings** shows completed jobs, what the partner collected, and what was paid online.
 
-Also included: Wallet (credits, transactions, incentives, penalties, recharge), Earnings and settlement detail, Performance report, Reviews, Restrictions, ID card, Today’s schedule, Leaves, My services, Personal details, Service flow guide, and Help.
+Also included: Performance report, Reviews, Leaves, ID card, My services, Personal details, Today's schedule, Service flow guide, Help, and Wallet (sample).
 
 ## What is live and what is sample data
 
-| Area | Backend | Status |
+| Area | Backend (`ps_core` branch `claude/technician-partner-api`) | Status |
 | --- | --- | --- |
-| Sign in, refresh, logout, `me` | `/api/v1/auth/*` | Live |
-| Assigned jobs list and job detail | `GET /api/v1/technician/jobs/`, `GET …/jobs/{id}/` | Live |
-| Job actions | `POST /api/v1/technician/jobs/{id}/en-route/ · start/ · collect-balance/ · complete/` | Live |
-| Profile, ID card, services, reviews, leaves, performance | `GET /api/v1/technician/profile/ · reviews/ · leaves/ · performance/`, `POST …/leaves/` | Live (needs ps_core branch `claude/technician-partner-api`) |
-| Restrictions, dashboard opportunities, wallet, earnings, settlements | Proposed in [docs/PARTNER_API_CONTRACT.md](docs/PARTNER_API_CONTRACT.md) | Sample data |
+| Sign in or sign up, refresh, logout | `/api/v1/auth/firebase/` with `app: "partner"`, `/auth/*` | Live |
+| KYC | `PATCH /technician/profile/`, `GET /technician/skills/`, `/technician/documents/`, `POST /technician/kyc/submit/` | Live |
+| Job alerts | `POST/DELETE /notifications/devices/` (Expo push) | Live; needs an EAS project id |
+| Jobs and job steps | `/technician/jobs/` · `{id}/accept · en-route · arrived · start {otp} · collect-balance · complete` | Live |
+| Completion photos | `/technician/jobs/{id}/photos/` | Live |
+| Earnings | `GET /technician/earnings/` | Live (job values; no commission or payouts yet) |
+| Profile, ID card, services, reviews, leaves, performance | `/technician/profile · reviews · leaves · performance/` | Live |
+| Wallet, restrictions, dashboard opportunities | Proposed in [docs/PARTNER_API_CONTRACT.md](docs/PARTNER_API_CONTRACT.md) | Sample data (restrictions sample is empty) |
 | Wallet recharge payment | Needs a wallet payment-order endpoint | Disabled in the UI |
 
 While `EXPO_PUBLIC_PARTNER_MOCKS` is not `false`, the endpoints that are not live yet come from `src/lib/mock-data.ts`, and those screens show a “Sample data” label. Once the backend ships them, set it to `false`. Screens need no change because `src/lib/api.ts` already holds the real paths.
@@ -42,7 +50,7 @@ npx expo run:android
 
 1. Register the Android app `in.purplesquad.partner` (and the iOS app) in the Purple Squad Firebase project. Enable Phone auth, add the SHA-1/SHA-256 fingerprints, and put the downloaded `google-services.json` in the repo root.
 2. Create the EAS project (`npx eas-cli@latest init`), which writes `extra.eas.projectId` into `app.json`.
-3. Make sure the backend’s `/api/v1/auth/firebase/` endpoint accepts tokens from the partner app. Only users with the `TECHNICIAN` role can sign in; anyone else is signed straight back out.
+3. Job alerts use Expo push. For Android, upload the Firebase Cloud Messaging V1 service-account key to EAS (`npx eas-cli@latest credentials` → Android → Push Notifications). On iOS, EAS sets up the APNs key during the build. Push only works on a real phone, in a development or production build.
 
 ## Quality checks
 

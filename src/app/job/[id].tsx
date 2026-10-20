@@ -43,7 +43,8 @@ export default function JobDetailScreen() {
       return api.jobs.complete(id);
     },
     onSuccess: (updated) => { setOtp(''); saveJob(updated); },
-    onError: (error: Error) => Alert.alert('Couldn’t update job', error.message),
+    // A wrong OTP is shown under the code boxes instead of in a popup.
+    onError: (error: Error, current) => { if (current !== 'start') Alert.alert('Couldn’t update job', error.message); },
   });
   const collect = useMutation({
     mutationFn: (method: 'CASH' | 'UPI') => api.jobs.collectBalance(id, balanceRemaining(job!).toFixed(2), method),
@@ -80,7 +81,8 @@ export default function JobDetailScreen() {
       <Pressable onPress={() => otpInput.current?.focus()} style={styles.otpRow} accessibilityLabel="Enter service OTP">
         {[0, 1, 2, 3].map((index) => <View key={index} style={[styles.otpCell, otp.length === index && styles.otpCellActive]}><Text style={styles.otpDigit}>{otp[index] ?? ''}</Text></View>)}
       </Pressable>
-      <TextInput ref={otpInput} value={otp} onChangeText={(value) => setOtp(value.replace(/\D/g, '').slice(0, 4))} keyboardType="number-pad" maxLength={4} style={styles.hidden} />
+      <TextInput ref={otpInput} value={otp} onChangeText={(value) => { advance.reset(); setOtp(value.replace(/\D/g, '').slice(0, 4)); }} keyboardType="number-pad" maxLength={4} style={styles.hidden} />
+      {advance.error && advance.variables === 'start' ? <Text style={styles.otpError}>{advance.error.message}</Text> : null}
     </Card> : null}
 
     <Card>
@@ -119,6 +121,7 @@ const styles = StyleSheet.create({
   otpCellActive: { borderWidth: 1.5, borderColor: colors.primary, backgroundColor: colors.primarySoft },
   otpDigit: { color: colors.heading, fontFamily: typography.extrabold, fontSize: 24 },
   hidden: { position: 'absolute', width: 1, height: 1, opacity: 0 },
+  otpError: { color: colors.danger, fontFamily: typography.semibold, fontSize: 13, textAlign: 'center' },
   actions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs },
   action: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 44, borderRadius: radius.pill, backgroundColor: colors.primary },
   actionGhost: { backgroundColor: colors.white, borderWidth: 1.5, borderColor: colors.primary },

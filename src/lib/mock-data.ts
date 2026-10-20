@@ -5,11 +5,8 @@ import type { DashboardSummary, Restriction, Wallet } from '@/types/api';
 const daysAgo = (days: number, hour = 11) => { const date = new Date(); date.setDate(date.getDate() - days); date.setHours(hour, 15, 0, 0); return date.toISOString(); };
 const delay = <T,>(value: T) => new Promise<T>((resolve) => setTimeout(() => resolve(structuredClone(value)), 350));
 
-const restrictions: Restriction[] = [{
-  id: 'r-1', level: 'LEVEL_1', reason: 'You did not visit the customer at the scheduled time.', work_order: 'PS-1452384', created_at: daysAgo(11),
-  how_to_resolve: ['Complete all your pending and overdue jobs.', 'Update and finish jobs on time every day.'],
-  consequences: ['You will receive fewer job recommendations, or none at all.'],
-}];
+// No sample restrictions: showing one would mark every real partner as restricted.
+const restrictions: Restriction[] = [];
 const wallet: Wallet = {
   running_credits: '12468',
   transactions: [

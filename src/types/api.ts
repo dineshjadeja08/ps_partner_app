@@ -30,8 +30,13 @@ export type TechnicianProfile = {
   supported_services: { id: UUID; name: string; slug: string; category: string }[]; experience_years: string; languages: string[];
   background_verification_status: 'PENDING' | 'UNDER_REVIEW' | 'VERIFIED' | 'REJECTED' | 'SUSPENDED';
   availability_status: 'AVAILABLE' | 'BUSY' | 'ON_LEAVE' | 'OFFLINE' | 'SUSPENDED'; average_rating: string; completed_job_count: number;
-  is_available: boolean; is_active: boolean; joined_at: string | null;
+  is_available: boolean; is_active: boolean; joined_at: string | null; kyc_submitted_at: string | null; verification_note: string;
 };
+export type VerificationStatus = TechnicianProfile['background_verification_status'];
+export type Skill = { id: UUID; name: string; description: string };
+export type DocumentType = 'AADHAAR_FRONT' | 'AADHAAR_BACK' | 'PAN' | 'PHOTO' | 'CERTIFICATE';
+export type KycDocument = { id: UUID; doc_type: DocumentType; url: string; created_at: string };
+export type ProfileUpdate = Partial<{ display_name: string; email: string; city: string; pincode: string; experience_years: string; languages: string[]; skill_ids: UUID[] }>;
 export type PartnerStatus = 'ACTIVE' | 'RESTRICTED' | 'INACTIVE';
 export type MonthPoint = { month: string; jobs: number; earnings: number; rating: number | null };
 export type Performance = {

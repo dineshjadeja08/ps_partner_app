@@ -17,10 +17,10 @@ export default function LoginScreen() {
   const { control, handleSubmit, setError } = useForm<Form>({ resolver: zodResolver(schema), defaultValues: { phone: '' } });
   const send = useMutation({ mutationFn: (phone: string) => requestFirebaseOtp(`+91${phone}`), onSuccess: (_, phone) => router.push({ pathname: '/verify-otp', params: { phone } }), onError: (error: Error) => setError('phone', { message: error.message }) });
   return <Screen><View style={styles.brand}><Image source={require('../../assets/images/icon.png')} contentFit="cover" style={styles.logo} /><Text style={styles.brandName}>PurplePartner</Text><Text style={styles.brandTag}>For Purple Squad service partners</Text></View>
-    <View style={styles.card}><Text accessibilityRole="header" style={styles.title}>Partner sign in</Text><Text style={styles.subtitle}>Use the mobile number registered with Purple Squad to manage your jobs, wallet and earnings.</Text>
-      <Controller control={control} name="phone" render={({ field, fieldState }) => <Field label="Registered mobile number" value={field.value} onChangeText={(value) => field.onChange(value.replace(/\D/g, '').slice(0, 10))} keyboardType="phone-pad" error={fieldState.error?.message} placeholder="10-digit mobile number" />} />
+    <View style={styles.card}><Text accessibilityRole="header" style={styles.title}>Sign in or join</Text><Text style={styles.subtitle}>Enter your mobile number. New partners can sign up here and complete KYC to start getting jobs.</Text>
+      <Controller control={control} name="phone" render={({ field, fieldState }) => <Field label="Mobile number" value={field.value} onChangeText={(value) => field.onChange(value.replace(/\D/g, '').slice(0, 10))} keyboardType="phone-pad" error={fieldState.error?.message} placeholder="10-digit mobile number" />} />
       <Button loading={send.isPending} onPress={handleSubmit((values) => send.mutate(values.phone))}>Send OTP</Button>
-      <View style={styles.notice}><Text style={styles.noticeTitle}>Not a partner yet?</Text><Text style={styles.noticeText}>Apply on purplesquad.in/join-as-technician. Our team verifies your documents and activates your account.</Text></View>
+      <View style={styles.notice}><Text style={styles.noticeTitle}>What you’ll need to join</Text><Text style={styles.noticeText}>Aadhaar card, PAN card and a clear photo of yourself. Our team verifies them, usually within 1–2 working days.</Text></View>
     </View>
   </Screen>;
 }

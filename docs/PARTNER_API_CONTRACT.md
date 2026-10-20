@@ -8,25 +8,34 @@ Every endpoint is authenticated (`Authorization: Bearer <access>`), scoped to th
 
 | Method | Path | Used by |
 | --- | --- | --- |
-| POST | `/api/v1/auth/firebase/` | OTP verify |
+| POST | `/api/v1/auth/firebase/` `{ id_token, app: "partner" }` | Sign in; unknown numbers sign up as pending partners |
 | GET | `/api/v1/auth/me/` | Session restore and role check |
 | POST | `/api/v1/auth/refresh/`, `/api/v1/auth/logout/` | Session |
-| GET | `/api/v1/technician/jobs/?page_size=100` | Dashboard counts, Jobs, Schedule, Job detail |
-| POST | `/api/v1/technician/jobs/{id}/en-route/` | Start travelling |
-| POST | `/api/v1/technician/jobs/{id}/start/` | Start job |
-| POST | `/api/v1/technician/jobs/{id}/complete/` | Complete job (requires the balance to be collected) |
-| GET | `/api/v1/technician/jobs/{id}/` | Job detail |
-| POST | `/api/v1/technician/jobs/{id}/collect-balance/` | Record cash/UPI collected (`{ amount, method }`) |
-| GET | `/api/v1/technician/profile/` | More, ID card, Personal details, My services |
-| GET | `/api/v1/technician/reviews/` | My reviews (paginated) |
-| GET, POST | `/api/v1/technician/leaves/` | My leaves; POST `{ start_at, end_at, reason }` creates a pending request |
-| GET | `/api/v1/technician/performance/?period=overall\|YYYY-MM` | Performance report (`penalties` is null until penalties exist) |
+| GET, PATCH | `/api/v1/technician/profile/` | Profile, ID card, services; PATCH edits KYC details while pending or rejected |
+| GET | `/api/v1/technician/skills/` | Services picker in KYC |
+| GET, POST | `/api/v1/technician/documents/` (multipart `doc_type`, `file`) | KYC documents; Aadhaar, PAN and photo replace the previous upload |
+| DELETE | `/api/v1/technician/documents/{id}/` | Remove a KYC document |
+| POST | `/api/v1/technician/kyc/submit/` | Submit for review; 400 lists anything still missing |
+| POST, DELETE | `/api/v1/notifications/devices/` `{ token, platform, app }` | Register or remove the Expo push token |
+| GET | `/api/v1/technician/jobs/`, `/api/v1/technician/jobs/{id}/` | Jobs, dashboard counts, schedule, job detail |
+| POST | `/api/v1/technician/jobs/{id}/accept/` | Accept job |
+| POST | `/api/v1/technician/jobs/{id}/en-route/` | Start travelling (after accept) |
+| POST | `/api/v1/technician/jobs/{id}/arrived/` | I have arrived |
+| POST | `/api/v1/technician/jobs/{id}/start/` `{ otp }` | Start job with the customer's 4-digit OTP; locked after 5 wrong tries |
+| GET, POST | `/api/v1/technician/jobs/{id}/photos/` (multipart `kind`, `file`) | Completion proof (BEFORE, AFTER, RECEIPT) while in progress |
+| DELETE | `/api/v1/technician/jobs/{id}/photos/{photo_id}/` | Remove a photo |
+| POST | `/api/v1/technician/jobs/{id}/collect-balance/` `{ amount, method }` | Record cash or UPI collected |
+| POST | `/api/v1/technician/jobs/{id}/complete/` | Complete job (balance must be collected) |
+| GET | `/api/v1/technician/earnings/` | Earnings tab |
+| GET | `/api/v1/technician/reviews/` | My reviews |
+| GET, POST | `/api/v1/technician/leaves/` | My leaves |
+| GET | `/api/v1/technician/performance/` | Performance report |
 
 ### Requested changes to live endpoints
 
 - **Filtering and pagination on `/technician/jobs/`.** Add `status`, `date_from`, `date_to` and `search` (work order number). A partner with more than 100 jobs currently loses the oldest ones.
-- **Service PIN on `start`.** HomeTriangle makes the partner ask the customer for a 4-digit PIN before starting. Add `{ "service_pin": "1234" }` to the start request and show the PIN in the customer app.
-- **Arrival location on `en-route` and `start`.** Accept an optional `{ "latitude", "longitude" }` for arrival tracking. The app already asks for location permission.
+- **Arrival location on `arrived` and `start`.** Accept an optional `{ "latitude", "longitude" }` for arrival tracking. The app already asks for location permission.
+- **Commission and payouts.** `/technician/earnings/` returns job values; add the partner's share and settlement status once the business rules exist.
 
 ## Still needed
 
@@ -36,12 +45,9 @@ Every endpoint is authenticated (`Authorization: Bearer <access>`), scoped to th
 | GET | `/api/v1/technician/dashboard/` | `DashboardSummary` | Dashboard opportunities |
 | GET | `/api/v1/technician/wallet/` | `Wallet` | Wallet tabs |
 | POST | `/api/v1/technician/wallet/recharge/order/` | Razorpay order (same shape as the customer `PaymentOrder`) | Recharge (not wired yet) |
-| GET | `/api/v1/technician/earnings/` | `Earnings` | Earnings |
-| GET | `/api/v1/technician/settlements/{id}/` | `Settlement` | Settlement details |
 
 ### Notes for the backend
 
 - The ACTIVE / RESTRICTED / INACTIVE pill is derived in the app: any active `Restriction` means RESTRICTED; otherwise the profile's `is_active` and `employment_status` decide.
 - `Wallet.running_credits` is the prepaid balance that lead fees and penalties are deducted from. Recharge must go through Razorpay with server-side verification, as in the customer app. Never trust the client amount.
 - Lists should be paginated (`Paginated<T>`) once volumes grow. The app can adopt that without UI changes.
-- Push notifications for new jobs (FCM) are out of scope for this contract. They need a device-token endpoint and `expo-notifications`.

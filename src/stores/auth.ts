@@ -5,7 +5,7 @@ import { unregisterJobAlerts } from '@/lib/push';
 import { sessionStorage, type StoredSession } from '@/lib/session';
 import type { AuthResponse, User } from '@/types/api';
 
-export class NotPartnerError extends Error { constructor() { super('This number is not registered as a Purple Squad partner. Contact your Purple Squad manager to get onboarded.'); } }
+export class NotPartnerError extends Error { constructor() { super('This number is registered as a Purple Squad customer account. Use a different number to join as a partner.'); } }
 type AuthState = { ready: boolean; user: User | null; restore: () => Promise<void>; acceptLogin: (response: AuthResponse) => Promise<void>; logout: () => Promise<void> };
 export const useAuth = create<AuthState>((set) => ({
   ready: false, user: null,

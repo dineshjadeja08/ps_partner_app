@@ -48,8 +48,9 @@ export function Segmented<T extends string>({ options, value, onChange }: { opti
   return <View style={styles.segment}>{options.map((option) => { const active = option.value === value; return <Pressable key={option.value} accessibilityRole="tab" accessibilityState={{ selected: active }} onPress={() => { void Haptics.selectionAsync(); onChange(option.value); }} style={[styles.segmentItem, active && styles.segmentActive]}><Text style={[styles.segmentText, active && styles.segmentTextActive]}>{option.label}</Text></Pressable>; })}</View>;
 }
 
-export function Chips<T extends string>({ options, value, onChange }: { options: { value: T; label: string }[]; value: T; onChange: (value: T) => void }) {
-  return <View style={styles.chips}>{options.map((option) => { const active = option.value === value; return <Pressable key={option.value} accessibilityRole="button" accessibilityState={{ selected: active }} onPress={() => onChange(option.value)} style={[styles.chip, active && styles.chipActive]}><Text style={[styles.chipText, active && styles.chipTextActive]}>{option.label}</Text></Pressable>; })}</View>;
+/** Single choice by default; pass `selected` for multi-select (onChange then toggles a value). */
+export function Chips<T extends string>({ options, value, selected, onChange }: { options: { value: T; label: string }[]; value?: T; selected?: T[]; onChange: (value: T) => void }) {
+  return <View style={styles.chips}>{options.map((option) => { const active = selected ? selected.includes(option.value) : option.value === value; return <Pressable key={option.value} accessibilityRole="button" accessibilityState={{ selected: active }} onPress={() => onChange(option.value)} style={[styles.chip, active && styles.chipActive]}><Text style={[styles.chipText, active && styles.chipTextActive]}>{option.label}</Text></Pressable>; })}</View>;
 }
 
 /** Shown on screens backed by sample data, so nobody mistakes it for real account data. */
