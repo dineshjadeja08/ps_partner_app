@@ -18,15 +18,29 @@ export type Job = {
   completed_at: string | null; cancelled_at: string | null; created_at: string;
 };
 
-// ── Proposed partner contracts (docs/PARTNER_API_CONTRACT.md); mocked until the backend ships them ──
-export type PartnerStatus = 'ACTIVE' | 'RESTRICTED' | 'SUSPENDED' | 'PENDING_VERIFICATION';
-export type PartnerProfile = {
-  id: UUID; partner_code: string; display_name: string; company_name: string; company_address: string;
-  phone: string; email?: string; role: 'OWNER' | 'EMPLOYEE'; status: PartnerStatus; profile_photo_url?: string;
-  technician_type: 'EMPLOYEE' | 'CONTRACT' | 'PARTNER'; background_verification_status: 'PENDING' | 'UNDER_REVIEW' | 'VERIFIED' | 'REJECTED' | 'SUSPENDED';
-  skills: { id: UUID; name: string }[]; service_areas: { id: UUID; name: string; postal_code: string; city: string }[];
-  joined_at: string | null;
+// ── Technician self-service (/api/v1/technician/profile|reviews|leaves|performance) ──
+export type TechnicianProfile = {
+  id: UUID; employee_code: string; display_name: string; profile_photo_url: string; phone: string; alternate_phone: string; email: string;
+  technician_type: 'EMPLOYEE' | 'CONTRACT' | 'PARTNER'; employment_status: 'ACTIVE' | 'INACTIVE' | 'LEFT'; city: string; pincode: string;
+  skills: { id: UUID; name: string; description: string }[]; service_areas: { id: UUID; name: string; postal_code: string; city: string }[];
+  supported_services: { id: UUID; name: string; slug: string; category: string }[]; experience_years: string; languages: string[];
+  background_verification_status: 'PENDING' | 'UNDER_REVIEW' | 'VERIFIED' | 'REJECTED' | 'SUSPENDED';
+  availability_status: 'AVAILABLE' | 'BUSY' | 'ON_LEAVE' | 'OFFLINE' | 'SUSPENDED'; average_rating: string; completed_job_count: number;
+  is_available: boolean; is_active: boolean; joined_at: string | null;
 };
+export type PartnerStatus = 'ACTIVE' | 'RESTRICTED' | 'INACTIVE';
+export type MonthPoint = { month: string; jobs: number; earnings: number; rating: number | null };
+export type Performance = {
+  period: string; completion_rate: number; completed: number; total: number; cancelled: number; open: number;
+  gross_revenue: string; average_rating: number | null; review_count: number; penalties: number | null; penalty_amount: string | null;
+  needs_attention: boolean; trend: MonthPoint[];
+};
+export type Review = { id: UUID; booking_number: string; customer_name: string; service_name: string; rating: number; comment: string; created_at: string };
+export type LeaveStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+export type Leave = { id: UUID; start_at: string; end_at: string; reason: string; status: LeaveStatus; review_note: string };
+export type LeaveInput = { start_at: string; end_at: string; reason: string };
+
+// ── Proposed partner contracts (docs/PARTNER_API_CONTRACT.md); mocked until the backend ships them ──
 export type Restriction = { id: UUID; level: string; reason: string; work_order?: string; created_at: string; how_to_resolve: string[]; consequences: string[] };
 export type DashboardSummary = { opportunities: { mine: number; open: number | null } };
 export type WalletTxnKind = 'CREDIT' | 'DEBIT';
@@ -39,13 +53,3 @@ export type Settlement = {
   items: { name: string; quantity: number; unit_price: string; total: string }[]; subtotal: string; discount: string; total: string;
 };
 export type Earnings = { total: string; settlements: Settlement[] };
-export type MonthPoint = { month: string; jobs: number; earnings: number; rating: number | null };
-export type Performance = {
-  period: string; completion_rate: number; completed: number; total: number; cancelled: number; open: number;
-  gross_revenue: string; average_rating: number | null; review_count: number; penalties: number; penalty_amount: string;
-  needs_attention: boolean; trend: MonthPoint[];
-};
-export type Review = { id: UUID; customer_name: string; service_name: string; rating: number; comment: string; created_at: string };
-export type LeaveStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
-export type Leave = { id: UUID; start_date: string; end_date: string; reason: string; status: LeaveStatus };
-export type LeaveInput = { start_date: string; end_date: string; reason: string };

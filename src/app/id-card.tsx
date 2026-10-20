@@ -1,27 +1,26 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { StyleSheet, Text, View } from 'react-native';
-import { SampleDataNote, StatusPill } from '@/components/partner-ui';
+import { StatusPill } from '@/components/partner-ui';
 import { Screen } from '@/components/ui/screen';
 import { LoadingState, MessageState } from '@/components/ui/states';
-import { useProfile } from '@/lib/queries';
+import { usePartnerStatus, useProfile } from '@/lib/queries';
 import { colors, radius, spacing, typography } from '@/theme/tokens';
 
 // Shown to customers at the door, so it carries only what they need to verify the partner.
 export default function IdCardScreen() {
-  const profile = useProfile();
+  const profile = useProfile(); const status = usePartnerStatus();
   if (profile.isLoading) return <LoadingState />;
   if (!profile.data) return <Screen><MessageState title="Couldn’t load ID card" message={profile.error?.message ?? 'Please try again.'} actionLabel="Try again" onAction={() => void profile.refetch()} /></Screen>;
   const data = profile.data; const verified = data.background_verification_status === 'VERIFIED';
   return <Screen>
-    <SampleDataNote />
     <View style={styles.card}>
       <View style={styles.band}><Image source={require('../../assets/images/icon.png')} contentFit="cover" style={styles.logo} /><Text style={styles.bandText}>PURPLE SQUAD PARTNER</Text></View>
       <View style={styles.photo}>{data.profile_photo_url ? <Image source={{ uri: data.profile_photo_url }} style={styles.photoImg} /> : <Text style={styles.initial}>{data.display_name.slice(0, 1)}</Text>}</View>
       <Text style={styles.name}>{data.display_name}</Text>
       <StatusPill label={verified ? 'Verified partner' : 'Verification pending'} tone={verified ? 'success' : 'progress'} />
       <View style={styles.rows}>
-        <Row label="Company" value={data.company_name} /><Row label="Address" value={data.company_address} /><Row label="Partner ID" value={data.partner_code} /><Row label="Status" value={data.status.replaceAll('_', ' ')} />
+        <Row label="Partner ID" value={data.employee_code} />{data.city ? <Row label="City" value={data.city} /> : null}<Row label="Skills" value={data.skills.map((skill) => skill.name).join(', ') || '–'} /><Row label="Status" value={status ?? '–'} />
       </View>
       {verified ? <View style={styles.seal}><Ionicons name="shield-checkmark" size={18} color={colors.success} /><Text style={styles.sealText}>Background verified by Purple Squad</Text></View> : null}
     </View>

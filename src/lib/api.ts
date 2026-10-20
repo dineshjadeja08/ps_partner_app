@@ -1,12 +1,18 @@
 import { mockPartnerApi } from '@/lib/mock-data';
 import { sessionStorage } from '@/lib/session';
-import type { ApiErrorBody, AuthResponse, DashboardSummary, Earnings, Job, Leave, LeaveInput, Paginated, PartnerProfile, Performance, Restriction, Review, Settlement, User, Wallet } from '@/types/api';
+import type { ApiErrorBody, AuthResponse, DashboardSummary, Earnings, Job, Leave, LeaveInput, Paginated, Performance, Restriction, Review, Settlement, TechnicianProfile, User, Wallet } from '@/types/api';
 
 const API_URL = (process.env.EXPO_PUBLIC_API_URL ?? 'http://10.0.2.2:8000').replace(/\/$/, '');
 /** True while partner endpoints that the backend does not ship yet are served from sample data. */
 export const USING_MOCKS = process.env.EXPO_PUBLIC_PARTNER_MOCKS !== 'false';
 export class ApiError extends Error { constructor(public status: number, message: string, public code?: string, public details?: unknown) { super(message); } }
 let refreshPromise: Promise<string | null> | null = null;
+/** The most specific message in an error body: DRF puts the real reason in details (a list, or field → messages). */
+function errorMessage(body: ApiErrorBody, fallback: string) {
+  const details = body.error?.details as unknown;
+  const first = (value: unknown): string | undefined => (typeof value === 'string' ? value : Array.isArray(value) ? first(value[0]) : value && typeof value === 'object' ? first(Object.values(value)[0]) : undefined);
+  return first(details) ?? body.error?.message ?? body.detail ?? fallback;
+}
 function buildUrl(path: string, query?: Record<string, string | number | boolean | undefined>) { const value = new URL(`${API_URL}${path}`); Object.entries(query ?? {}).forEach(([key, item]) => item !== undefined && value.searchParams.set(key, String(item))); return value.toString(); }
 async function refreshAccess() {
   if (!refreshPromise) refreshPromise = (async () => {
@@ -24,7 +30,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   headers.set('Accept', 'application/json'); if (init.body && !(init.body instanceof FormData)) headers.set('Content-Type', 'application/json'); if (session?.tokens.access) headers.set('Authorization', `Bearer ${session.tokens.access}`);
   const response = await fetch(buildUrl(path, query), { ...init, headers });
   if (response.status === 401 && auth && retryAuth && await refreshAccess()) return apiRequest<T>(path, { ...options, retryAuth: false });
-  if (!response.ok) { let body: ApiErrorBody = {}; try { body = await response.json() as ApiErrorBody; } catch {} const fallback = response.status >= 500 ? 'Purple Squad is temporarily unavailable. Please try again.' : 'Please check the details and try again.'; throw new ApiError(response.status, body.error?.message ?? body.detail ?? fallback, body.error?.code, body.error?.details ?? body); }
+  if (!response.ok) { let body: ApiErrorBody = {}; try { body = await response.json() as ApiErrorBody; } catch {} const fallback = response.status >= 500 ? 'Purple Squad is temporarily unavailable. Please try again.' : 'Please check the details and try again.'; throw new ApiError(response.status, errorMessage(body, fallback), body.error?.code, body.error?.details ?? body); }
   if (response.status === 204) return undefined as T; return response.json() as Promise<T>;
 }
 /** Proposed endpoint: sample data while USING_MOCKS, the real path once the backend ships it. */
@@ -36,25 +42,29 @@ export const api = {
     me: () => apiRequest<User>('/api/v1/auth/me/', { auth: true }),
     logout: (refresh: string) => apiRequest<void>('/api/v1/auth/logout/', { method: 'POST', auth: true, body: JSON.stringify({ refresh }) }),
   },
-  // Live today.
+  // Live.
   jobs: {
     list: () => apiRequest<Paginated<Job>>('/api/v1/technician/jobs/', { auth: true, query: { page_size: 100 } }),
+    get: (id: string) => apiRequest<Job>(`/api/v1/technician/jobs/${id}/`, { auth: true }),
     enRoute: (id: string) => apiRequest<Job>(`/api/v1/technician/jobs/${id}/en-route/`, { method: 'POST', auth: true, body: '{}' }),
     start: (id: string) => apiRequest<Job>(`/api/v1/technician/jobs/${id}/start/`, { method: 'POST', auth: true, body: '{}' }),
     complete: (id: string) => apiRequest<Job>(`/api/v1/technician/jobs/${id}/complete/`, { method: 'POST', auth: true, body: '{}' }),
+    collectBalance: (id: string, amount: string, method: 'CASH' | 'UPI') => apiRequest<Job>(`/api/v1/technician/jobs/${id}/collect-balance/`, { method: 'POST', auth: true, body: JSON.stringify({ amount, method }) }),
+  },
+  me: {
+    profile: () => apiRequest<TechnicianProfile>('/api/v1/technician/profile/', { auth: true }),
+    performance: () => apiRequest<Performance>('/api/v1/technician/performance/', { auth: true }),
+    reviews: async () => (await apiRequest<Paginated<Review>>('/api/v1/technician/reviews/', { auth: true, query: { page_size: 100 } })).results,
+    leaves: async () => (await apiRequest<Paginated<Leave>>('/api/v1/technician/leaves/', { auth: true, query: { page_size: 100 } })).results,
+    applyLeave: (input: LeaveInput) => apiRequest<Leave>('/api/v1/technician/leaves/', { method: 'POST', auth: true, body: JSON.stringify(input) }),
   },
   // Proposed in docs/PARTNER_API_CONTRACT.md.
   partner: {
-    profile: () => pending(mockPartnerApi.profile, () => apiRequest<PartnerProfile>('/api/v1/technician/profile/', { auth: true })),
     restrictions: () => pending(mockPartnerApi.restrictions, () => apiRequest<Restriction[]>('/api/v1/technician/restrictions/', { auth: true })),
     dashboard: () => pending(mockPartnerApi.dashboard, () => apiRequest<DashboardSummary>('/api/v1/technician/dashboard/', { auth: true })),
     wallet: () => pending(mockPartnerApi.wallet, () => apiRequest<Wallet>('/api/v1/technician/wallet/', { auth: true })),
     earnings: () => pending(mockPartnerApi.earnings, () => apiRequest<Earnings>('/api/v1/technician/earnings/', { auth: true })),
     settlement: (id: string) => pending(() => mockPartnerApi.settlement(id), () => apiRequest<Settlement>(`/api/v1/technician/settlements/${id}/`, { auth: true })),
-    performance: () => pending(mockPartnerApi.performance, () => apiRequest<Performance>('/api/v1/technician/performance/', { auth: true })),
-    reviews: () => pending(mockPartnerApi.reviews, () => apiRequest<Review[]>('/api/v1/technician/reviews/', { auth: true })),
-    leaves: () => pending(mockPartnerApi.leaves, () => apiRequest<Leave[]>('/api/v1/technician/leaves/', { auth: true })),
-    applyLeave: (input: LeaveInput) => pending(() => mockPartnerApi.applyLeave(input), () => apiRequest<Leave>('/api/v1/technician/leaves/', { method: 'POST', auth: true, body: JSON.stringify(input) })),
   },
 };
 export const money = (value: string | number) => `₹${Number(value).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;

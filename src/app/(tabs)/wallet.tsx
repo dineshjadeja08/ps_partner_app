@@ -9,7 +9,7 @@ import { RowSkeleton } from '@/components/ui/skeleton';
 import { MessageState } from '@/components/ui/states';
 import { api, money } from '@/lib/api';
 import { formatDateTime } from '@/lib/format';
-import { useProfile } from '@/lib/queries';
+import { usePartnerStatus } from '@/lib/queries';
 import { colors, radius, spacing, typography } from '@/theme/tokens';
 
 type Tab = 'transactions' | 'incentives' | 'penalties';
@@ -17,14 +17,14 @@ const tabs: { value: Tab; label: string }[] = [{ value: 'transactions', label: '
 type Row = { id: string; title: string; meta: string; amount: string; credit: boolean };
 
 export default function WalletScreen() {
-  const profile = useProfile(); const wallet = useQuery({ queryKey: ['partner', 'wallet'], queryFn: api.partner.wallet });
+  const status = usePartnerStatus(); const wallet = useQuery({ queryKey: ['partner', 'wallet'], queryFn: api.partner.wallet });
   const [tab, setTab] = useState<Tab>('transactions');
   const data = wallet.data;
   const rows: Row[] = !data ? [] : tab === 'penalties'
     ? data.penalties.map((item) => ({ id: item.id, title: item.reason, meta: `${formatDateTime(item.created_at)}${item.work_order ? ` · WO ${item.work_order}` : ''}`, amount: item.amount, credit: false }))
     : data[tab].map((item) => ({ id: item.id, title: item.title, meta: `${formatDateTime(item.created_at)}${item.work_order ? ` · WO ${item.work_order}` : ''}`, amount: item.amount, credit: item.kind === 'CREDIT' }));
   return <View style={styles.flex}>
-    <TabHeader title="Wallet" status={profile.data?.status} />
+    <TabHeader title="Wallet" status={status} />
     <Screen refreshing={wallet.isRefetching} onRefresh={() => void wallet.refetch()}>
       <SampleDataNote />
       <View style={styles.balance}><Text style={styles.balanceLabel}>Running credits</Text><Text style={styles.balanceValue}>{data ? money(data.running_credits) : '–'}</Text><Text style={styles.balanceHint}>Lead fees and penalties are deducted from credits. Keep a positive balance to keep receiving jobs.</Text></View>

@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, Text, View } from 'react-native';
-import { Card, SampleDataNote, SectionTitle } from '@/components/partner-ui';
+import { Card, EmptyState, SectionTitle } from '@/components/partner-ui';
 import { Screen } from '@/components/ui/screen';
 import { LoadingState, MessageState } from '@/components/ui/states';
 import { useProfile } from '@/lib/queries';
@@ -11,11 +11,10 @@ export default function ServicesScreen() {
   if (profile.isLoading) return <LoadingState />;
   if (!profile.data) return <Screen><MessageState title="Couldn’t load services" message={profile.error?.message ?? 'Please try again.'} actionLabel="Try again" onAction={() => void profile.refetch()} /></Screen>;
   return <Screen>
-    <SampleDataNote />
     <SectionTitle>Services you offer</SectionTitle>
-    <Card>{profile.data.skills.map((skill) => <View key={skill.id} style={styles.row}><Ionicons name="checkmark-circle" size={18} color={colors.success} /><Text style={styles.text}>{skill.name}</Text></View>)}</Card>
+    {profile.data.skills.length ? <Card>{profile.data.skills.map((skill) => <View key={skill.id} style={styles.row}><Ionicons name="checkmark-circle" size={18} color={colors.success} /><Text style={styles.text}>{skill.name}</Text></View>)}</Card> : <EmptyState icon="construct-outline" title="No services yet" />}
     <SectionTitle>Service areas</SectionTitle>
-    <Card>{profile.data.service_areas.map((area) => <View key={area.id} style={styles.row}><Ionicons name="location" size={18} color={colors.primary} /><Text style={styles.text}>{area.name}, {area.city} – {area.postal_code}</Text></View>)}</Card>
+    {profile.data.service_areas.length ? <Card>{profile.data.service_areas.map((area) => <View key={area.id} style={styles.row}><Ionicons name="location" size={18} color={colors.primary} /><Text style={styles.text}>{area.name}, {area.city} – {area.postal_code}</Text></View>)}</Card> : <EmptyState icon="location-outline" title="No service areas yet" />}
     <Text style={styles.note}>To add services or areas, contact your Purple Squad partner manager. New skills may need a short assessment.</Text>
   </Screen>;
 }

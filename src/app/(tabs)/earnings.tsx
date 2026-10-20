@@ -8,13 +8,13 @@ import { RowSkeleton } from '@/components/ui/skeleton';
 import { MessageState } from '@/components/ui/states';
 import { api, money } from '@/lib/api';
 import { formatDateTime } from '@/lib/format';
-import { useProfile } from '@/lib/queries';
+import { usePartnerStatus } from '@/lib/queries';
 import { colors, radius, spacing, typography } from '@/theme/tokens';
 
 export default function EarningsScreen() {
-  const profile = useProfile(); const earnings = useQuery({ queryKey: ['partner', 'earnings'], queryFn: api.partner.earnings });
+  const status = usePartnerStatus(); const earnings = useQuery({ queryKey: ['partner', 'earnings'], queryFn: api.partner.earnings });
   return <>
-    <TabHeader title="Earnings" status={profile.data?.status} />
+    <TabHeader title="Earnings" status={status} />
     <Screen refreshing={earnings.isRefetching} onRefresh={() => void earnings.refetch()}>
       <SampleDataNote />
       <View style={styles.total}><Text style={styles.totalLabel}>My earnings</Text><Text style={styles.totalValue}>{earnings.data ? money(earnings.data.total) : '–'}</Text></View>

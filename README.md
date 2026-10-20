@@ -4,7 +4,7 @@ Expo/React Native app for Purple Squad service partners (technicians and partner
 
 ## Implemented journey
 
-Phone OTP (Firebase) → technician-only role check → location permissions → Dashboard → Jobs → Job detail → Start travelling / Start job / Complete job.
+Phone OTP (Firebase) → technician-only role check → location permissions → Dashboard → Jobs → Job detail → Start travelling → Start job → Record cash/UPI collected → Complete job.
 
 Also included: Wallet (credits, transactions, incentives, penalties, recharge), Earnings and settlement detail, Performance report, Reviews, Restrictions, ID card, Today’s schedule, Leaves, My services, Personal details, Service flow guide, and Help.
 
@@ -13,9 +13,10 @@ Also included: Wallet (credits, transactions, incentives, penalties, recharge), 
 | Area | Backend | Status |
 | --- | --- | --- |
 | Sign in, refresh, logout, `me` | `/api/v1/auth/*` | Live |
-| Assigned jobs list | `GET /api/v1/technician/jobs/` | Live |
-| Job actions | `POST /api/v1/technician/jobs/{id}/en-route/ · start/ · complete/` | Live |
-| Profile, restrictions, dashboard opportunities, wallet, earnings, settlements, performance, reviews, leaves | Proposed in [docs/PARTNER_API_CONTRACT.md](docs/PARTNER_API_CONTRACT.md) | Sample data |
+| Assigned jobs list and job detail | `GET /api/v1/technician/jobs/`, `GET …/jobs/{id}/` | Live |
+| Job actions | `POST /api/v1/technician/jobs/{id}/en-route/ · start/ · collect-balance/ · complete/` | Live |
+| Profile, ID card, services, reviews, leaves, performance | `GET /api/v1/technician/profile/ · reviews/ · leaves/ · performance/`, `POST …/leaves/` | Live (needs ps_core branch `claude/technician-partner-api`) |
+| Restrictions, dashboard opportunities, wallet, earnings, settlements | Proposed in [docs/PARTNER_API_CONTRACT.md](docs/PARTNER_API_CONTRACT.md) | Sample data |
 | Wallet recharge payment | Needs a wallet payment-order endpoint | Disabled in the UI |
 
 While `EXPO_PUBLIC_PARTNER_MOCKS` is not `false`, the endpoints that are not live yet come from `src/lib/mock-data.ts`, and those screens show a “Sample data” label. Once the backend ships them, set it to `false`. Screens need no change because `src/lib/api.ts` already holds the real paths.

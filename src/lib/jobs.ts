@@ -40,9 +40,12 @@ export function countBuckets(jobs: Job[]) {
 export function nextAction(job: Job) {
   if (job.booking_status === 'CONFIRMED' || job.booking_status === 'TECHNICIAN_ASSIGNED') return { label: 'Start travelling', hint: 'Tell the customer you are on the way.', run: api.jobs.enRoute };
   if (job.booking_status === 'TECHNICIAN_EN_ROUTE') return { label: 'Start job', hint: 'Inspect the site and agree the work with the customer first.', run: api.jobs.start };
-  if (job.booking_status === 'IN_PROGRESS') return { label: 'Complete job', hint: 'Collect the balance shown below before completing.', run: api.jobs.complete };
+  if (job.booking_status === 'IN_PROGRESS') return { label: 'Complete job', hint: 'Confirm the work is finished and the customer is satisfied.', run: api.jobs.complete };
   return null;
 }
+
+/** Balance still to collect on site, in rupees. */
+export const balanceRemaining = (job: Job) => Math.max(0, Number(job.balance_due) - Number(job.balance_collected));
 
 export const addressText = (job: Job) => {
   const a = job.address_snapshot ?? {};

@@ -6,33 +6,47 @@ import { Card, KeyValue, StatusPill } from '@/components/partner-ui';
 import { Button } from '@/components/ui/button';
 import { Screen } from '@/components/ui/screen';
 import { LoadingState, MessageState } from '@/components/ui/states';
-import { money } from '@/lib/api';
+import { api, money } from '@/lib/api';
 import { formatDate, formatSlot } from '@/lib/format';
-import { addressText, isOverdue, jobsQuery, jobsQueryKey, jobStatusLabel, jobTone, nextAction } from '@/lib/jobs';
+import { addressText, balanceRemaining, isOverdue, jobsQuery, jobsQueryKey, jobStatusLabel, jobTone, nextAction } from '@/lib/jobs';
 import { colors, radius, spacing, typography } from '@/theme/tokens';
 import type { Job, Paginated } from '@/types/api';
 
 export default function JobDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const client = useQueryClient();
-  // The backend has no single-job endpoint for technicians yet; read from the jobs list.
+  // Show the copy from the jobs list instantly, then refresh this job from the backend.
   const jobs = useQuery(jobsQuery);
-  const job = jobs.data?.results.find((item) => item.id === id);
+  const detail = useQuery({ queryKey: [...jobsQueryKey, id], queryFn: () => api.jobs.get(id), initialData: () => jobs.data?.results.find((item) => item.id === id), initialDataUpdatedAt: () => client.getQueryState(jobsQueryKey)?.dataUpdatedAt });
+  const job = detail.data;
   const action = job ? nextAction(job) : null;
+  const saveJob = (updated: Job) => { client.setQueryData([...jobsQueryKey, id], updated); client.setQueryData<Paginated<Job>>(jobsQueryKey, (page) => page && { ...page, results: page.results.map((item) => (item.id === updated.id ? updated : item)) }); void client.invalidateQueries({ queryKey: jobsQueryKey }); };
+  const collect = useMutation({
+    mutationFn: (method: 'CASH' | 'UPI') => api.jobs.collectBalance(job!.id, balanceRemaining(job!).toFixed(2), method),
+    onSuccess: saveJob,
+    onError: (error: Error) => Alert.alert('Couldn’t record payment', error.message),
+  });
   const update = useMutation({
     mutationFn: () => action!.run(job!.id),
-    onSuccess: (updated) => { client.setQueryData<Paginated<Job>>(jobsQueryKey, (page) => page && { ...page, results: page.results.map((item) => (item.id === updated.id ? updated : item)) }); void client.invalidateQueries({ queryKey: jobsQueryKey }); },
+    onSuccess: saveJob,
     onError: (error: Error) => Alert.alert('Couldn’t update job', error.message),
   });
-  if (jobs.isLoading) return <LoadingState />;
-  if (jobs.isError) return <Screen><MessageState title="Couldn’t load job" message={jobs.error.message} actionLabel="Try again" onAction={() => void jobs.refetch()} /></Screen>;
+  if (detail.isLoading) return <LoadingState />;
+  if (!job && detail.isError) return <Screen><MessageState title="Couldn’t load job" message={detail.error.message} actionLabel="Try again" onAction={() => void detail.refetch()} /></Screen>;
   if (!job) return <Screen><MessageState title="Job not found" message="This job is no longer assigned to you." actionLabel="Back to jobs" onAction={() => router.back()} /></Screen>;
   const phone = job.customer_phone || job.contact_phone;
   const address = addressText(job);
   const overdue = isOverdue(job);
-  const confirm = () => Alert.alert(action!.label, action!.hint, [{ text: 'Cancel', style: 'cancel' }, { text: action!.label, onPress: () => update.mutate() }]);
+  // react-native-web's Alert ignores buttons, so the web preview falls back to the browser dialog.
+  const confirm = () => (Platform.OS === 'web' ? globalThis.confirm(`${action!.label}?\n\n${action!.hint}`) && update.mutate() : Alert.alert(action!.label, action!.hint, [{ text: 'Cancel', style: 'cancel' }, { text: action!.label, onPress: () => update.mutate() }]));
+  // A balance due must be recorded as collected before the backend lets the job complete.
+  const mustCollect = job.booking_status === 'IN_PROGRESS' && balanceRemaining(job) > 0;
+  const confirmCollect = (method: 'CASH' | 'UPI') => { const message = `Confirm you received ${money(balanceRemaining(job))} by ${method === 'CASH' ? 'cash' : 'UPI'}.`; if (Platform.OS === 'web') { if (globalThis.confirm(message)) collect.mutate(method); return; } Alert.alert('Payment received?', message, [{ text: 'Cancel', style: 'cancel' }, { text: 'Yes, received', onPress: () => collect.mutate(method) }]); };
+  const bottom = mustCollect
+    ? <View style={styles.collect}><Button loading={collect.isPending && collect.variables === 'CASH'} disabled={collect.isPending} onPress={() => confirmCollect('CASH')}>{`Collected ${money(balanceRemaining(job))} in cash`}</Button><Button variant="secondary" loading={collect.isPending && collect.variables === 'UPI'} disabled={collect.isPending} onPress={() => confirmCollect('UPI')}>Collected by UPI</Button></View>
+    : action ? <Button loading={update.isPending} onPress={() => confirm()}>{action.label}</Button> : undefined;
   const openMaps = () => { const query = encodeURIComponent(address); void Linking.openURL(Platform.OS === 'ios' ? `maps:0,0?q=${query}` : `geo:0,0?q=${query}`); };
-  return <Screen refreshing={jobs.isRefetching} onRefresh={() => void jobs.refetch()} bottom={action ? <Button loading={update.isPending} onPress={confirm}>{action.label}</Button> : undefined}>
+  return <Screen refreshing={detail.isRefetching} onRefresh={() => void detail.refetch()} bottom={bottom}>
     <Card>
       <View style={styles.top}><Text style={styles.wo}>{job.booking_number}</Text><StatusPill label={overdue ? 'Overdue' : jobStatusLabel(job.booking_status)} tone={overdue ? 'danger' : jobTone(job.booking_status)} /></View>
       <Text style={styles.service}>{job.service.name}{job.quantity && job.quantity > 1 ? ` × ${job.quantity}` : ''}</Text>
@@ -49,7 +63,7 @@ export default function JobDetailScreen() {
       <KeyValue label="Order total" value={money(job.total_amount)} /><KeyValue label="Paid online (advance)" value={money(job.advance_paid)} /><KeyValue label="Already collected" value={money(job.balance_collected)} />
       <View style={styles.divider} /><KeyValue strong label="Collect from customer" value={money(job.balance_due)} />
     </Card>
-    {action ? <View style={styles.hint}><Ionicons name="information-circle-outline" size={16} color={colors.primary} /><Text style={styles.hintText}>{action.hint}</Text></View> : null}
+    {action ? <View style={styles.hint}><Ionicons name="information-circle-outline" size={16} color={colors.primary} /><Text style={styles.hintText}>{mustCollect ? 'Collect the balance from the customer, record it here, then complete the job.' : action.hint}</Text></View> : null}
   </Screen>;
 }
 const styles = StyleSheet.create({
@@ -67,6 +81,7 @@ const styles = StyleSheet.create({
   actionGhost: { backgroundColor: colors.white, borderWidth: 1.5, borderColor: colors.primary },
   actionText: { color: colors.white, fontFamily: typography.bold, fontSize: 14 },
   divider: { height: 1, backgroundColor: colors.border, marginVertical: spacing.xs },
+  collect: { gap: spacing.sm },
   hint: { flexDirection: 'row', gap: spacing.sm, padding: spacing.md, borderRadius: radius.button, backgroundColor: colors.primarySoft },
   hintText: { flex: 1, color: colors.primary, fontFamily: typography.medium, fontSize: 13, lineHeight: 19 },
 });

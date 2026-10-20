@@ -1,4 +1,4 @@
-import { Card, KeyValue, SampleDataNote } from '@/components/partner-ui';
+import { Card, KeyValue } from '@/components/partner-ui';
 import { Screen } from '@/components/ui/screen';
 import { LoadingState, MessageState } from '@/components/ui/states';
 import { formatDate } from '@/lib/format';
@@ -11,13 +11,12 @@ export default function ProfileScreen() {
   if (!profile.data) return <Screen><MessageState title="Couldn’t load profile" message={profile.error?.message ?? 'Please try again.'} actionLabel="Try again" onAction={() => void profile.refetch()} /></Screen>;
   const data = profile.data;
   return <Screen>
-    <SampleDataNote label="Profile details are sample data. Your signed-in number is live." />
     <Card>
       <KeyValue label="Name" value={data.display_name} /><KeyValue label="Signed in as" value={user?.phone_number ?? data.phone} /><KeyValue label="Email" value={data.email || '–'} />
-      <KeyValue label="Role" value={data.role === 'OWNER' ? 'Owner' : 'Technician'} /><KeyValue label="Partner type" value={data.technician_type.toLowerCase()} />
+      <KeyValue label="Partner type" value={data.technician_type.toLowerCase()} /><KeyValue label="Experience" value={`${Number(data.experience_years)} years`} /><KeyValue label="Languages" value={data.languages.join(', ') || '–'} />
     </Card>
     <Card>
-      <KeyValue label="Company" value={data.company_name} /><KeyValue label="Address" value={data.company_address} /><KeyValue label="Partner ID" value={data.partner_code} />
+      <KeyValue label="Partner ID" value={data.employee_code} /><KeyValue label="City" value={[data.city, data.pincode].filter(Boolean).join(' – ') || '–'} /><KeyValue label="Status" value={data.employment_status.toLowerCase()} />
       <KeyValue label="Verification" value={data.background_verification_status.replaceAll('_', ' ').toLowerCase()} /><KeyValue label="Joined" value={data.joined_at ? formatDate(data.joined_at) : '–'} />
     </Card>
   </Screen>;

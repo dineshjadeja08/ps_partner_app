@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { Card, Grid, SampleDataNote, Segmented, StatTile, StatusPill } from '@/components/partner-ui';
+import { Card, Grid, Segmented, StatTile, StatusPill } from '@/components/partner-ui';
 import { Screen } from '@/components/ui/screen';
 import { LoadingState, MessageState } from '@/components/ui/states';
 import { api, money } from '@/lib/api';
@@ -12,14 +12,13 @@ type Metric = 'jobs' | 'earnings' | 'rating';
 const metrics: { value: Metric; label: string }[] = [{ value: 'jobs', label: 'Jobs' }, { value: 'earnings', label: 'Earnings' }, { value: 'rating', label: 'Rating' }];
 
 export default function PerformanceScreen() {
-  const report = useQuery({ queryKey: ['partner', 'performance'], queryFn: api.partner.performance });
+  const report = useQuery({ queryKey: ['me', 'performance'], queryFn: api.me.performance });
   const [metric, setMetric] = useState<Metric>('jobs');
   if (report.isLoading) return <LoadingState />;
   if (!report.data) return <Screen><MessageState title="Couldn’t load report" message={report.error?.message ?? 'Please try again.'} actionLabel="Try again" onAction={() => void report.refetch()} /></Screen>;
   const data = report.data;
   const rateColor = data.completion_rate >= 80 ? colors.success : data.completion_rate >= 50 ? colors.warning : colors.danger;
   return <Screen refreshing={report.isRefetching} onRefresh={() => void report.refetch()}>
-    <SampleDataNote />
     <Card>
       <View style={styles.top}><View><Text style={styles.caption}>{data.period} performance</Text><Text style={styles.cardTitle}>Completion overview</Text></View>{data.needs_attention ? <StatusPill label="Needs attention" tone="danger" /> : null}</View>
       <View style={styles.overview}>
@@ -31,7 +30,7 @@ export default function PerformanceScreen() {
       <StatTile icon="checkmark-circle" tone={colors.success} value={data.completed} label="Completed jobs" footer={<Text style={styles.footerDanger}>{data.cancelled} cancelled of {data.total}</Text>} />
       <StatTile icon="cash" value={money(data.gross_revenue)} label="Total earnings" footer={<Text style={styles.caption}>Gross revenue</Text>} />
       <StatTile icon="star" tone="#F5B301" value={data.average_rating?.toFixed(1) ?? '–'} label="Average rating" footer={<Text style={styles.caption}>{data.review_count} customer reviews</Text>} />
-      <StatTile icon="warning" tone={colors.danger} value={data.penalties} label="Penalties incurred" footer={<Text style={styles.footerDanger}>Deducted {money(data.penalty_amount)}</Text>} />
+      {data.penalties !== null ? <StatTile icon="warning" tone={colors.danger} value={data.penalties} label="Penalties incurred" footer={data.penalty_amount ? <Text style={styles.footerDanger}>Deducted {money(data.penalty_amount)}</Text> : null} /> : <StatTile icon="briefcase" value={data.open} label="Open jobs" footer={<Text style={styles.caption}>Not yet completed</Text>} />}
     </Grid>
     <Card>
       <Text style={styles.cardTitle}>3-month trend</Text><Text style={styles.caption}>Performance trajectory over time</Text>

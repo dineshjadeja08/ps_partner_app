@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { StyleSheet, Text, View } from 'react-native';
-import { Card, EmptyState, SampleDataNote, Stars } from '@/components/partner-ui';
+import { Card, EmptyState, Stars } from '@/components/partner-ui';
 import { Screen } from '@/components/ui/screen';
 import { RowSkeleton } from '@/components/ui/skeleton';
 import { MessageState } from '@/components/ui/states';
@@ -9,11 +9,10 @@ import { formatDateTime } from '@/lib/format';
 import { colors, typography } from '@/theme/tokens';
 
 export default function ReviewsScreen() {
-  const reviews = useQuery({ queryKey: ['partner', 'reviews'], queryFn: api.partner.reviews });
+  const reviews = useQuery({ queryKey: ['me', 'reviews'], queryFn: api.me.reviews });
   const list = reviews.data ?? [];
   const average = list.length ? list.reduce((sum, item) => sum + item.rating, 0) / list.length : 0;
   return <Screen refreshing={reviews.isRefetching} onRefresh={() => void reviews.refetch()}>
-    <SampleDataNote />
     {list.length ? <Card style={styles.summary}><Text style={styles.average}>{average.toFixed(1)}</Text><Stars rating={Math.round(average)} size={20} /><Text style={styles.meta}>{list.length} customer reviews</Text></Card> : null}
     {reviews.isLoading ? <RowSkeleton /> : reviews.isError ? <MessageState title="Couldn’t load reviews" message={reviews.error.message} actionLabel="Try again" onAction={() => void reviews.refetch()} />
       : list.length ? list.map((review) => <Card key={review.id}>
