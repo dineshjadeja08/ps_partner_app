@@ -1,6 +1,6 @@
 # Prompts for the remaining MVP work
 
-Paste each prompt into your AI code editor (Claude Code, Cursor, etc.) **inside the repo named in its heading**. All of them rely on backend changes that are already on the `ps_core` branch `claude/technician-partner-api`, so merge or deploy that branch first.
+Paste each prompt into your AI code editor (Claude Code, Cursor, etc.) **inside the repo named in its heading**. All of them rely on backend changes that are on the `ps_core` branch `gcp_deployment`, so deploy that first.
 
 Already done, and not covered here: the partner app (PurplePartner) and its backend — sign-up and KYC, job alerts, Accept → On the way → Arrived → OTP start → photos → collect payment → Complete, and earnings.
 
@@ -13,7 +13,7 @@ Decision used in these prompts: **the technician marks the job completed**. The 
 ```text
 You are working in the Purple Squad customer app (Expo SDK 57, Expo Router, React Query). Read AGENTS.md first and follow it.
 
-The backend (ps_core, branch claude/technician-partner-api) now has:
+The backend (ps_core, branch gcp_deployment) now has:
 - GET /api/v1/bookings/{id}/start-otp/ → { otp: "4821", verified: boolean, verified_at: string | null }. Only the booking's customer can read it.
 - Every booking response (list and detail) now also has:
   accepted_at: string | null, arrived_at: string | null, start_otp_verified: boolean,
@@ -40,7 +40,7 @@ Run npx tsc --noEmit and npx expo lint, then test on a phone against the backend
 ```text
 You are working in ps_coreF1 (Next.js): the Purple Squad customer website, admin panel and the old /technician web portal. Read AGENTS.md / CLAUDE.md first. API paths live in src/lib/api/endpoints.ts and types in src/types/api.ts.
 
-The backend (ps_core, branch claude/technician-partner-api) added:
+The backend (ps_core, branch gcp_deployment) added:
 - Technician KYC
   - GET /api/v1/admin/technicians/?verification=UNDER_REVIEW (also PENDING, VERIFIED, REJECTED, SUSPENDED)
   - GET /api/v1/admin/technicians/{id}/kyc/ → { profile, documents: [{ id, doc_type, url, created_at }] }.
@@ -69,7 +69,7 @@ Run the project's lint, typecheck and tests (npm run lint, npx tsc --noEmit, npm
 ## Prompt 3: Backend extras (`ps_core`), optional for MVP
 
 ```text
-You are working in ps_core (Django + DRF) on top of branch claude/technician-partner-api. Follow the existing patterns: services in apps/*/services.py, audit_event for admin actions, drf-spectacular schemas, and pytest tests in tests/.
+You are working in ps_core (Django + DRF) on branch gcp_deployment. Follow the existing patterns: services in apps/*/services.py, audit_event for admin actions, drf-spectacular schemas, and pytest tests in tests/.
 
 Build:
 1. Complaints: a Complaint model (booking, raised_by customer, category [SERVICE_QUALITY, DAMAGE, OVERCHARGE, NO_SHOW, BEHAVIOUR, OTHER], description, optional photos, status OPEN/IN_PROGRESS/RESOLVED/REJECTED, resolution note, assigned_to admin, timestamps).

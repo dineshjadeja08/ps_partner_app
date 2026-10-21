@@ -1,6 +1,6 @@
 # Partner API contract
 
-The endpoints under **Live** are in `ps_core` (branch `claude/technician-partner-api`). The ones under **Still needed** do not exist in the backend yet. The app serves them from `src/lib/mock-data.ts` until `EXPO_PUBLIC_PARTNER_MOCKS=false`. The TypeScript shapes live in `src/types/api.ts` and are the source of truth for field names.
+The endpoints under **Live** are in `ps_core` (branch `gcp_deployment`). The ones under **Still needed** do not exist in the backend yet. The app serves them from `src/lib/mock-data.ts` until `EXPO_PUBLIC_PARTNER_MOCKS=false`. The TypeScript shapes live in `src/types/api.ts` and are the source of truth for field names.
 
 Every endpoint is authenticated (`Authorization: Bearer <access>`), scoped to the signed-in `TECHNICIAN` user, and returns the standard error body `{ "error": { "code", "message", "details" } }`. Money values are decimal strings in INR.
 
@@ -16,11 +16,11 @@ Every endpoint is authenticated (`Authorization: Bearer <access>`), scoped to th
 | GET, POST | `/api/v1/technician/documents/` (multipart `doc_type`, `file`) | KYC documents; Aadhaar, PAN and photo replace the previous upload |
 | DELETE | `/api/v1/technician/documents/{id}/` | Remove a KYC document |
 | POST | `/api/v1/technician/kyc/submit/` | Submit for review; 400 lists anything still missing |
-| POST, DELETE | `/api/v1/notifications/devices/` `{ token, platform, app }` | Register or remove the Expo push token |
+| POST, DELETE | `/api/v1/devices/register/` `{ token, platform }` | Register or remove the phone's FCM token |
 | GET | `/api/v1/technician/jobs/`, `/api/v1/technician/jobs/{id}/` | Jobs, dashboard counts, schedule, job detail |
 | POST | `/api/v1/technician/jobs/{id}/accept/` | Accept job |
-| POST | `/api/v1/technician/jobs/{id}/en-route/` | Start travelling (after accept) |
-| POST | `/api/v1/technician/jobs/{id}/arrived/` | I have arrived |
+| POST | `/api/v1/technician/jobs/{id}/en-route/` | Start travelling (also records acceptance) |
+| POST | `/api/v1/technician/jobs/{id}/arrived/` | I have arrived → `TECHNICIAN_ARRIVED` |
 | POST | `/api/v1/technician/jobs/{id}/start/` `{ otp }` | Start job with the customer's 4-digit OTP; locked after 5 wrong tries |
 | GET, POST | `/api/v1/technician/jobs/{id}/photos/` (multipart `kind`, `file`) | Completion proof (BEFORE, AFTER, RECEIPT) while in progress |
 | DELETE | `/api/v1/technician/jobs/{id}/photos/{photo_id}/` | Remove a photo |

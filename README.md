@@ -15,12 +15,12 @@ Also included: Performance report, Reviews, Leaves, ID card, My services, Person
 
 ## What is live and what is sample data
 
-| Area | Backend (`ps_core` branch `claude/technician-partner-api`) | Status |
+| Area | Backend (`ps_core` branch `gcp_deployment`) | Status |
 | --- | --- | --- |
 | Sign in or sign up, refresh, logout | `/api/v1/auth/firebase/` with `app: "partner"`, `/auth/*` | Live |
 | KYC | `PATCH /technician/profile/`, `GET /technician/skills/`, `/technician/documents/`, `POST /technician/kyc/submit/` | Live |
-| Job alerts | `POST/DELETE /notifications/devices/` (Expo push) | Live; needs an EAS project id |
-| Jobs and job steps | `/technician/jobs/` · `{id}/accept · en-route · arrived · start {otp} · collect-balance · complete` | Live |
+| Job alerts | `POST/DELETE /devices/register/` (Firebase Cloud Messaging) | Live, Android |
+| Jobs and job steps | `/technician/jobs/` · `{id}/accept · en-route · arrived (TECHNICIAN_ARRIVED) · start {otp} · collect-balance · complete` | Live |
 | Completion photos | `/technician/jobs/{id}/photos/` | Live |
 | Earnings | `GET /technician/earnings/` | Live (job values; no commission or payouts yet) |
 | Profile, ID card, services, reviews, leaves, performance | `/technician/profile · reviews · leaves · performance/` | Live |
@@ -50,7 +50,7 @@ npx expo run:android
 
 1. Register the Android app `in.purplesquad.partner` (and the iOS app) in the Purple Squad Firebase project. Enable Phone auth, add the SHA-1/SHA-256 fingerprints, and put the downloaded `google-services.json` in the repo root.
 2. Create the EAS project (`npx eas-cli@latest init`), which writes `extra.eas.projectId` into `app.json`.
-3. Job alerts use Expo push. For Android, upload the Firebase Cloud Messaging V1 service-account key to EAS (`npx eas-cli@latest credentials` → Android → Push Notifications). On iOS, EAS sets up the APNs key during the build. Push only works on a real phone, in a development or production build.
+3. Job alerts use Firebase Cloud Messaging through the same `google-services.json`; the backend sends them with its Firebase Admin credentials, so no extra setup is needed. They work on real Android phones in a development or production build. iOS alerts need `@react-native-firebase/messaging` later, because iOS gives an APNs token, not an FCM token.
 
 ## Quality checks
 

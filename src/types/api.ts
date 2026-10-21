@@ -6,7 +6,7 @@ export type User = { id: UUID; phone_number: string; email?: string | null; firs
 export type AuthResponse = { user: User; tokens: Tokens; created: boolean };
 
 // ── Live backend contracts (/api/v1/technician/jobs/…) ──
-export type BookingStatus = 'PENDING_PAYMENT' | 'PAYMENT_FAILED' | 'CONFIRMED' | 'TECHNICIAN_ASSIGNED' | 'TECHNICIAN_EN_ROUTE' | 'IN_PROGRESS' | 'COMPLETED' | 'CLOSED' | 'CANCELLED' | 'REFUND_PENDING' | 'REFUNDED';
+export type BookingStatus = 'PENDING_PAYMENT' | 'PAYMENT_FAILED' | 'CONFIRMED' | 'TECHNICIAN_ASSIGNED' | 'TECHNICIAN_EN_ROUTE' | 'TECHNICIAN_ARRIVED' | 'IN_PROGRESS' | 'COMPLETED' | 'CLOSED' | 'CANCELLED' | 'REFUND_PENDING' | 'REFUNDED';
 export type PaymentStatus = 'UNPAID' | 'PARTIALLY_PAID' | 'PAID' | 'FAILED' | 'REFUNDED';
 export type Job = {
   id: UUID; booking_number: string; customer_name?: string; customer_phone?: string;

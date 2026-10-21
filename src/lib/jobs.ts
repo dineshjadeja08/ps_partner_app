@@ -10,7 +10,8 @@ export function jobStatusLabel(job: Job) {
   switch (job.booking_status) {
     case 'CONFIRMED': return 'New';
     case 'TECHNICIAN_ASSIGNED': return job.accepted_at ? 'Accepted' : 'New';
-    case 'TECHNICIAN_EN_ROUTE': return job.arrived_at ? 'Arrived' : 'On the way';
+    case 'TECHNICIAN_EN_ROUTE': return 'On the way';
+    case 'TECHNICIAN_ARRIVED': return 'Arrived';
     case 'IN_PROGRESS': return 'Started';
     case 'COMPLETED': case 'CLOSED': return 'Completed';
     case 'CANCELLED': case 'REFUND_PENDING': case 'REFUNDED': return 'Cancelled';
@@ -21,7 +22,7 @@ export type Tone = 'info' | 'progress' | 'success' | 'danger';
 export function jobTone(status: BookingStatus): Tone {
   if (status === 'COMPLETED' || status === 'CLOSED') return 'success';
   if (status === 'CANCELLED' || status === 'REFUND_PENDING' || status === 'REFUNDED' || status === 'PAYMENT_FAILED') return 'danger';
-  if (status === 'TECHNICIAN_EN_ROUTE' || status === 'IN_PROGRESS') return 'progress';
+  if (status === 'TECHNICIAN_EN_ROUTE' || status === 'TECHNICIAN_ARRIVED' || status === 'IN_PROGRESS') return 'progress';
   return 'info';
 }
 
@@ -49,7 +50,8 @@ export type JobStep = 'accept' | 'travel' | 'arrive' | 'start' | 'collect' | 'co
 export function nextStep(job: Job): JobStep | null {
   switch (job.booking_status) {
     case 'TECHNICIAN_ASSIGNED': return job.accepted_at ? 'travel' : 'accept';
-    case 'TECHNICIAN_EN_ROUTE': return job.arrived_at ? 'start' : 'arrive';
+    case 'TECHNICIAN_EN_ROUTE': return 'arrive';
+    case 'TECHNICIAN_ARRIVED': return 'start';
     case 'IN_PROGRESS': return balanceRemaining(job) > 0 ? 'collect' : 'complete';
     default: return null;
   }
