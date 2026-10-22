@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { api } from '@/lib/api';
+import { api, onSessionExpired } from '@/lib/api';
 import { signOutFirebase } from '@/lib/firebase-phone-auth';
 import { unregisterJobAlerts } from '@/lib/push';
 import { sessionStorage, type StoredSession } from '@/lib/session';
@@ -18,3 +18,6 @@ export const useAuth = create<AuthState>((set) => ({
   },
   logout: async () => { await unregisterJobAlerts(); const session = await sessionStorage.get(); try { if (session?.tokens.refresh) await api.auth.logout(session.tokens.refresh); } finally { await Promise.allSettled([sessionStorage.clear(), signOutFirebase()]); set({ user: null }); } },
 }));
+
+// A session that can't be refreshed (expired or revoked) signs the partner out, which shows Sign in again.
+onSessionExpired(() => { if (useAuth.getState().user) { void signOutFirebase(); useAuth.setState({ user: null }); } });

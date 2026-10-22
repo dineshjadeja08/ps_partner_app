@@ -9,6 +9,9 @@ const API_URL = (process.env.EXPO_PUBLIC_API_URL || (__DEV__ ? 'http://10.0.2.2:
 export const USING_MOCKS = process.env.EXPO_PUBLIC_PARTNER_MOCKS !== 'false';
 export class ApiError extends Error { constructor(public status: number, message: string, public code?: string, public details?: unknown) { super(message); } }
 let refreshPromise: Promise<string | null> | null = null;
+let sessionExpired: () => void = () => {};
+/** Called when the saved session can no longer be refreshed, so the app can return to Sign in. */
+export function onSessionExpired(handler: () => void) { sessionExpired = handler; }
 /** The most specific message in an error body: DRF puts the real reason in details (a list, or field → messages). */
 function errorMessage(body: ApiErrorBody, fallback: string) {
   const details = body.error?.details as unknown;
@@ -22,7 +25,7 @@ async function refreshAccess() {
   if (!refreshPromise) refreshPromise = (async () => {
     const session = await sessionStorage.get(); if (!session?.tokens.refresh) return null;
     const response = await fetch(buildUrl('/api/v1/auth/refresh/'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh: session.tokens.refresh }) });
-    if (!response.ok) { await sessionStorage.clear(); return null; }
+    if (!response.ok) { await sessionStorage.clear(); sessionExpired(); return null; }
     const body = await response.json() as { access: string; refresh?: string };
     await sessionStorage.set({ ...session, tokens: { ...session.tokens, access: body.access, refresh: body.refresh ?? session.tokens.refresh } }); return body.access;
   })().finally(() => { refreshPromise = null; });
@@ -36,6 +39,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   try { response = await fetch(buildUrl(path, query), { ...init, headers }); }
   catch { throw new ApiError(0, `Can’t reach Purple Squad (${API_URL}). Check your internet connection and try again.`, 'network_error'); }
   if (response.status === 401 && auth && retryAuth && await refreshAccess()) return apiRequest<T>(path, { ...options, retryAuth: false });
+  if (response.status === 401 && auth && !session?.tokens.access) { sessionExpired(); throw new ApiError(401, 'Your session has expired. Please sign in again.', 'session_expired'); }
   if (!response.ok) { let body: ApiErrorBody = {}; try { body = await response.json() as ApiErrorBody; } catch {} const fallback = response.status >= 500 ? 'Purple Squad is temporarily unavailable. Please try again.' : 'Please check the details and try again.'; throw new ApiError(response.status, errorMessage(body, fallback), body.error?.code, body.error?.details ?? body); }
   if (response.status === 204) return undefined as T; return response.json() as Promise<T>;
 }
