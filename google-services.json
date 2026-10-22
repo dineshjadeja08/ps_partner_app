@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "336433555697",
+    "project_id": "purplesquad-frontend",
+    "storage_bucket": "purplesquad-frontend.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:336433555697:android:a82088ad82c294d5866150",
+        "android_client_info": {
+          "package_name": "in.purplesquad.customer"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyATx9zw7MDzkLXJAZn3mmZoqZI4RrK-XkU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:336433555697:android:3cff986cc53ceab4866150",
+        "android_client_info": {
+          "package_name": "in.purplesquad.partner"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyATx9zw7MDzkLXJAZn3mmZoqZI4RrK-XkU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
