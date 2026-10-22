@@ -3,7 +3,8 @@ import { mockPartnerApi } from '@/lib/mock-data';
 import { sessionStorage } from '@/lib/session';
 import type { ApiErrorBody, AuthResponse, DashboardSummary, DocumentType, Earnings, Job, JobPhoto, JobPhotoKind, KycDocument, Leave, LeaveInput, Paginated, Performance, ProfileUpdate, Restriction, Review, Skill, TechnicianProfile, User, Wallet } from '@/types/api';
 
-const API_URL = (process.env.EXPO_PUBLIC_API_URL ?? 'http://10.0.2.2:8000').replace(/\/$/, '');
+// Release builds fall back to production, so an APK built without EXPO_PUBLIC_API_URL still works.
+const API_URL = (process.env.EXPO_PUBLIC_API_URL || (__DEV__ ? 'http://10.0.2.2:8000' : 'https://ps-core-5pswvofjdq-as.a.run.app')).replace(/\/$/, '');
 /** True while partner endpoints that the backend does not ship yet are served from sample data. */
 export const USING_MOCKS = process.env.EXPO_PUBLIC_PARTNER_MOCKS !== 'false';
 export class ApiError extends Error { constructor(public status: number, message: string, public code?: string, public details?: unknown) { super(message); } }
@@ -31,7 +32,9 @@ type RequestOptions = RequestInit & { auth?: boolean; query?: Record<string, str
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const { auth, query, retryAuth = true, ...init } = options; const session = auth ? await sessionStorage.get() : null; const headers = new Headers(init.headers);
   headers.set('Accept', 'application/json'); if (init.body && !(init.body instanceof FormData)) headers.set('Content-Type', 'application/json'); if (session?.tokens.access) headers.set('Authorization', `Bearer ${session.tokens.access}`);
-  const response = await fetch(buildUrl(path, query), { ...init, headers });
+  let response: Response;
+  try { response = await fetch(buildUrl(path, query), { ...init, headers }); }
+  catch { throw new ApiError(0, `Can’t reach Purple Squad (${API_URL}). Check your internet connection and try again.`, 'network_error'); }
   if (response.status === 401 && auth && retryAuth && await refreshAccess()) return apiRequest<T>(path, { ...options, retryAuth: false });
   if (!response.ok) { let body: ApiErrorBody = {}; try { body = await response.json() as ApiErrorBody; } catch {} const fallback = response.status >= 500 ? 'Purple Squad is temporarily unavailable. Please try again.' : 'Please check the details and try again.'; throw new ApiError(response.status, errorMessage(body, fallback), body.error?.code, body.error?.details ?? body); }
   if (response.status === 204) return undefined as T; return response.json() as Promise<T>;
